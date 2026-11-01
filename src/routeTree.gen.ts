@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedMatchesNewRouteImport } from './routes/_authenticated/matches.new'
+import { Route as AuthenticatedScoreMatchIdRouteImport } from './routes/_authenticated/score.$matchId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -39,18 +40,26 @@ const AuthenticatedMatchesNewRoute = AuthenticatedMatchesNewRouteImport.update({
   path: '/matches/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedScoreMatchIdRoute =
+  AuthenticatedScoreMatchIdRouteImport.update({
+    id: '/score/$matchId',
+    path: '/score/$matchId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/matches/new': typeof AuthenticatedMatchesNewRoute
+  '/score/$matchId': typeof AuthenticatedScoreMatchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/matches/new': typeof AuthenticatedMatchesNewRoute
+  '/score/$matchId': typeof AuthenticatedScoreMatchIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -59,12 +68,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/matches/new': typeof AuthenticatedMatchesNewRoute
+  '/_authenticated/score/$matchId': typeof AuthenticatedScoreMatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/matches/new'
+  fullPaths: '/' | '/auth' | '/dashboard' | '/matches/new' | '/score/$matchId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/matches/new'
+  to: '/' | '/auth' | '/dashboard' | '/matches/new' | '/score/$matchId'
   id:
     | '__root__'
     | '/'
@@ -72,6 +82,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/matches/new'
+    | '/_authenticated/score/$matchId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -117,17 +128,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMatchesNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/score/$matchId': {
+      id: '/_authenticated/score/$matchId'
+      path: '/score/$matchId'
+      fullPath: '/score/$matchId'
+      preLoaderRoute: typeof AuthenticatedScoreMatchIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedMatchesNewRoute: typeof AuthenticatedMatchesNewRoute
+  AuthenticatedScoreMatchIdRoute: typeof AuthenticatedScoreMatchIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedMatchesNewRoute: AuthenticatedMatchesNewRoute,
+  AuthenticatedScoreMatchIdRoute: AuthenticatedScoreMatchIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
