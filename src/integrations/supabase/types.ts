@@ -14,16 +14,196 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      deliveries: {
+        Row: {
+          bowler: string
+          created_at: string
+          created_by: string
+          extra_type: string
+          extras: number
+          id: string
+          innings: number
+          match_id: string
+          non_striker: string
+          runs_bat: number
+          seq: number
+          striker: string
+          wicket: Json | null
+        }
+        Insert: {
+          bowler: string
+          created_at?: string
+          created_by?: string
+          extra_type?: string
+          extras?: number
+          id: string
+          innings: number
+          match_id: string
+          non_striker: string
+          runs_bat?: number
+          seq: number
+          striker: string
+          wicket?: Json | null
+        }
+        Update: {
+          bowler?: string
+          created_at?: string
+          created_by?: string
+          extra_type?: string
+          extras?: number
+          id?: string
+          innings?: number
+          match_id?: string
+          non_striker?: string
+          runs_bat?: number
+          seq?: number
+          striker?: string
+          wicket?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_scorers: {
+        Row: {
+          email: string | null
+          match_id: string
+          user_id: string
+        }
+        Insert: {
+          email?: string | null
+          match_id: string
+          user_id: string
+        }
+        Update: {
+          email?: string | null
+          match_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_scorers_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matches: {
+        Row: {
+          balls_per_over: number
+          created_at: string
+          created_by: string
+          id: string
+          live: Json
+          match_date: string | null
+          name: string
+          overs: number
+          players_per_team: number
+          result: string | null
+          rules: Json
+          status: string
+          team_a: string
+          team_a_players: string[]
+          team_b: string
+          team_b_players: string[]
+          toss_decision: string | null
+          toss_winner: string | null
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          balls_per_over?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          live?: Json
+          match_date?: string | null
+          name: string
+          overs?: number
+          players_per_team?: number
+          result?: string | null
+          rules?: Json
+          status?: string
+          team_a: string
+          team_a_players?: string[]
+          team_b: string
+          team_b_players?: string[]
+          toss_decision?: string | null
+          toss_winner?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          balls_per_over?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          live?: Json
+          match_date?: string | null
+          name?: string
+          overs?: number
+          players_per_team?: number
+          result?: string | null
+          rules?: Json
+          status?: string
+          team_a?: string
+          team_a_players?: string[]
+          team_b?: string
+          team_b_players?: string[]
+          toss_decision?: string | null
+          toss_winner?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      assign_scorer: {
+        Args: { _email: string; _match: string }
+        Returns: undefined
+      }
+      can_score: { Args: { _match: string }; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_match_owner: { Args: { _match: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +330,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
