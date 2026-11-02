@@ -44,7 +44,7 @@ describe("cricket engine", () => {
     expect(s.legalBalls).toBe(0);
     expect(s.runs).toBe(6);
     expect(s.batters.find((b) => b.name === "A")!.balls).toBe(1);
-    expect(s.bowlers[0].runs).toBe(6);
+    expect(s.bowlers[0]!.runs).toBe(6);
   });
 
   it("odd runs rotate strike; end of over rotates strike", () => {
@@ -56,8 +56,8 @@ describe("cricket engine", () => {
   it("byes count as extras, not to batter or bowler", () => {
     const s = computeInnings([d({ extra_type: "bye", extras: 1 })], cfg(), null);
     expect(s.runs).toBe(1);
-    expect(s.batters[0].runs).toBe(0);
-    expect(s.bowlers[0].runs).toBe(0);
+    expect(s.batters[0]!.runs).toBe(0);
+    expect(s.bowlers[0]!.runs).toBe(0);
     expect(s.next.striker).toBe("B");
   });
 
@@ -68,7 +68,7 @@ describe("cricket engine", () => {
       null,
     );
     expect(s.wickets).toBe(1);
-    expect(s.bowlers[0].wickets).toBe(0);
+    expect(s.bowlers[0]!.wickets).toBe(0);
   });
 
   it("innings ends when all out with players-1 wickets (6 players => 5)", () => {

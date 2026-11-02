@@ -13,10 +13,10 @@ import {
 export type MatchRow = Tables<"matches">;
 
 export interface LiveState {
-  innings?: 1 | 2;
-  striker?: string | null;
-  nonStriker?: string | null;
-  bowler?: string | null;
+  innings?: 1 | 2 | undefined;
+  striker?: string | null | undefined;
+  nonStriker?: string | null | undefined;
+  bowler?: string | null | undefined;
 }
 
 export const getLive = (m: MatchRow): LiveState => (m.live ?? {}) as LiveState;

@@ -59,8 +59,8 @@ function NewMatch() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!f.teamA.trim() || !f.teamB.trim()) return toast.error("Enter both team names.");
-    if (f.teamA.trim().toLowerCase() === f.teamB.trim().toLowerCase()) return toast.error("Teams must be different.");
+    if (!f.teamA.trim() || !f.teamB.trim()) { toast.error("Enter both team names."); return; }
+    if (f.teamA.trim().toLowerCase() === f.teamB.trim().toLowerCase()) { toast.error("Teams must be different."); return; }
     setBusy(true);
     const { data: u } = await supabase.auth.getUser();
     const { data, error } = await supabase
@@ -88,7 +88,7 @@ function NewMatch() {
       .single();
     if (error || !data) {
       setBusy(false);
-      return toast.error(error?.message ?? "Could not create match");
+      { toast.error(error?.message ?? "Could not create match"); return; }
     }
     if (f.scorerEmail.trim()) {
       const { error: e2 } = await supabase.rpc("assign_scorer", { _match: data.id, _email: f.scorerEmail.trim() });

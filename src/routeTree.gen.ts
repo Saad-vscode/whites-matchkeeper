@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as DisplayMatchIdRouteImport } from './routes/display.$matchId'
+import { Route as MatchMatchIdRouteImport } from './routes/match.$matchId'
 import { Route as AuthenticatedMatchesNewRouteImport } from './routes/_authenticated/matches.new'
 import { Route as AuthenticatedScoreMatchIdRouteImport } from './routes/_authenticated/score.$matchId'
 
@@ -35,6 +37,16 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const DisplayMatchIdRoute = DisplayMatchIdRouteImport.update({
+  id: '/display/$matchId',
+  path: '/display/$matchId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchMatchIdRoute = MatchMatchIdRouteImport.update({
+  id: '/match/$matchId',
+  path: '/match/$matchId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedMatchesNewRoute = AuthenticatedMatchesNewRouteImport.update({
   id: '/matches/new',
   path: '/matches/new',
@@ -51,6 +63,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/display/$matchId': typeof DisplayMatchIdRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
   '/matches/new': typeof AuthenticatedMatchesNewRoute
   '/score/$matchId': typeof AuthenticatedScoreMatchIdRoute
 }
@@ -58,6 +72,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/display/$matchId': typeof DisplayMatchIdRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
   '/matches/new': typeof AuthenticatedMatchesNewRoute
   '/score/$matchId': typeof AuthenticatedScoreMatchIdRoute
 }
@@ -67,20 +83,38 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/display/$matchId': typeof DisplayMatchIdRoute
+  '/match/$matchId': typeof MatchMatchIdRoute
   '/_authenticated/matches/new': typeof AuthenticatedMatchesNewRoute
   '/_authenticated/score/$matchId': typeof AuthenticatedScoreMatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/matches/new' | '/score/$matchId'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/display/$matchId'
+    | '/match/$matchId'
+    | '/matches/new'
+    | '/score/$matchId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/matches/new' | '/score/$matchId'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/display/$matchId'
+    | '/match/$matchId'
+    | '/matches/new'
+    | '/score/$matchId'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/dashboard'
+    | '/display/$matchId'
+    | '/match/$matchId'
     | '/_authenticated/matches/new'
     | '/_authenticated/score/$matchId'
   fileRoutesById: FileRoutesById
@@ -89,6 +123,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DisplayMatchIdRoute: typeof DisplayMatchIdRoute
+  MatchMatchIdRoute: typeof MatchMatchIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -120,6 +156,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/display/$matchId': {
+      id: '/display/$matchId'
+      path: '/display/$matchId'
+      fullPath: '/display/$matchId'
+      preLoaderRoute: typeof DisplayMatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/match/$matchId': {
+      id: '/match/$matchId'
+      path: '/match/$matchId'
+      fullPath: '/match/$matchId'
+      preLoaderRoute: typeof MatchMatchIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/matches/new': {
       id: '/_authenticated/matches/new'
@@ -157,6 +207,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DisplayMatchIdRoute: DisplayMatchIdRoute,
+  MatchMatchIdRoute: MatchMatchIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
