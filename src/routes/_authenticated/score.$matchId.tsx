@@ -89,7 +89,7 @@ function TossSetup({ match, onDone }: { match: MatchRow; onDone: () => void }) {
       .update({ toss_winner: winner, toss_decision: decision, live: { innings: 1 } })
       .eq("id", match.id);
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     onDone();
   };
   return (
@@ -126,7 +126,7 @@ function TossSetup({ match, onDone }: { match: MatchRow; onDone: () => void }) {
 }
 
 function Summary({ match }: { match: MatchRow }) {
-  const r = (match.rules ?? {}) as Record<string, unknown>;
+  const r = (match.rules ?? {}) as { wideRuns?: number; noBallRuns?: number; maxOversPerBowler?: number | null; lastManBats?: boolean };
   return (
     <dl className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg border border-border bg-card p-4 text-sm">
       <dt className="text-muted-foreground">Overs</dt><dd className="font-semibold">{match.overs}</dd>
@@ -210,7 +210,7 @@ function Scorer({ lm }: { lm: LM }) {
       wicket: p.wicket ?? null,
     };
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("deliveries").insert({ ...del, wicket: del.wicket as never, created_by: u.user!.id });
+    const { error } = await supabase.from("deliveries").insert({ ...del, match_id: match.id, wicket: del.wicket as never, created_by: u.user!.id });
     if (error) {
       setBusy(false);
       toast.error(error.code === "23505" ? "That ball was already recorded — refreshing." : error.message);
@@ -257,12 +257,12 @@ function Scorer({ lm }: { lm: LM }) {
       mine = lm.deliveries.filter((x) => x.innings === 1);
     }
     const last = mine.sort((a, b) => b.seq - a.seq)[0];
-    if (!last) return toast("Nothing to undo.");
+    if (!last) { toast("Nothing to undo."); return; }
     setBusy(true);
     const { error } = await supabase.from("deliveries").delete().eq("id", last.id);
     if (error) {
       setBusy(false);
-      return toast.error(error.message);
+      { toast.error(error.message); return; }
     }
     lm.setDeliveries(lm.deliveries.filter((x) => x.id !== last.id));
     await updateLive({
@@ -423,7 +423,7 @@ function Scorer({ lm }: { lm: LM }) {
   );
 }
 
-function PlayerCell({ name, stat, strike }: { name?: string | null; stat: string; strike?: boolean }) {
+function PlayerCell({ name, stat, strike }: { name?: string | null | undefined; stat: string; strike?: boolean }) {
   return (
     <div className="bg-board px-4 py-2">
       <div className="flex items-center gap-1.5 truncate font-semibold">
@@ -496,7 +496,7 @@ function SelectPlayers({
   live: LiveState;
   eligibility: (n: string) => string | null;
   onSave: (v: Partial<LiveState>) => void;
-  onUndo?: () => void;
+  onUndo?: (() => void) | undefined;
 }) {
   const [striker, setStriker] = useState<string | null>(null);
   const [non, setNon] = useState<string | null>(null);
@@ -523,7 +523,7 @@ function SelectPlayers({
           value={bowler}
           onChange={(n) => {
             const e = eligibility(n);
-            if (e) return toast.error(e);
+            if (e) { toast.error(e); return; }
             setBowler(n);
           }}
           disabled={(n) => !!eligibility(n)}
@@ -704,7 +704,7 @@ function ScorerAdmin({ match }: { match: MatchRow }) {
   };
   const add = async () => {
     const { error } = await supabase.rpc("assign_scorer", { _match: match.id, _email: email });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     setEmail("");
     toast.success("Scorer added");
     load();
