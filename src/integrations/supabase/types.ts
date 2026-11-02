@@ -111,11 +111,14 @@ export type Database = {
           rules: Json
           status: string
           team_a: string
+          team_a_id: string | null
           team_a_players: string[]
           team_b: string
+          team_b_id: string | null
           team_b_players: string[]
           toss_decision: string | null
           toss_winner: string | null
+          tournament_id: string | null
           updated_at: string
           venue: string | null
         }
@@ -133,11 +136,14 @@ export type Database = {
           rules?: Json
           status?: string
           team_a: string
+          team_a_id?: string | null
           team_a_players?: string[]
           team_b: string
+          team_b_id?: string | null
           team_b_players?: string[]
           toss_decision?: string | null
           toss_winner?: string | null
+          tournament_id?: string | null
           updated_at?: string
           venue?: string | null
         }
@@ -155,13 +161,130 @@ export type Database = {
           rules?: Json
           status?: string
           team_a?: string
+          team_a_id?: string | null
           team_a_players?: string[]
           team_b?: string
+          team_b_id?: string | null
           team_b_players?: string[]
           toss_decision?: string | null
           toss_winner?: string | null
+          tournament_id?: string | null
           updated_at?: string
           venue?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matches_team_a_id_fkey"
+            columns: ["team_a_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_team_b_id_fkey"
+            columns: ["team_b_id"]
+            isOneToOne: false
+            referencedRelation: "tournament_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_teams: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          players: string[]
+          short_name: string | null
+          tournament_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          players?: string[]
+          short_name?: string | null
+          tournament_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          players?: string[]
+          short_name?: string | null
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_teams_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournaments: {
+        Row: {
+          accent_color: string
+          balls_per_over: number
+          created_at: string
+          created_by: string
+          id: string
+          logo_url: string | null
+          name: string
+          overs: number
+          players_per_team: number
+          points_loss: number
+          points_tie: number
+          points_win: number
+          primary_color: string
+          rules: Json
+          short_name: string | null
+        }
+        Insert: {
+          accent_color?: string
+          balls_per_over?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          overs?: number
+          players_per_team?: number
+          points_loss?: number
+          points_tie?: number
+          points_win?: number
+          primary_color?: string
+          rules?: Json
+          short_name?: string | null
+        }
+        Update: {
+          accent_color?: string
+          balls_per_over?: number
+          created_at?: string
+          created_by?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          overs?: number
+          players_per_team?: number
+          points_loss?: number
+          points_tie?: number
+          points_win?: number
+          primary_color?: string
+          rules?: Json
+          short_name?: string | null
         }
         Relationships: []
       }
@@ -201,6 +324,7 @@ export type Database = {
         Returns: boolean
       }
       is_match_owner: { Args: { _match: string }; Returns: boolean }
+      is_tournament_owner: { Args: { _t: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
