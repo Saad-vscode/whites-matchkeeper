@@ -30,6 +30,11 @@ function Dashboard() {
     },
   });
 
+  const { data: tours } = useQuery({
+    queryKey: ["my-tournaments", user.id],
+    queryFn: async () => (await supabase.from("tournaments").select("*").eq("created_by", user.id).order("created_at", { ascending: false })).data ?? [],
+  });
+
   return (
     <div className="min-h-screen">
       <SiteHeader />
@@ -68,6 +73,25 @@ function Dashboard() {
                     {m.status === "completed" ? "Open" : "Score"}
                   </Link>
                 </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-12 flex items-end justify-between gap-4">
+          <h2 className="text-3xl font-extrabold text-primary">My tournaments</h2>
+          <Button asChild variant="outline">
+            <Link to="/tournaments/new">New tournament</Link>
+          </Button>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {tours?.length === 0 && <p className="text-muted-foreground">No tournaments yet.</p>}
+          {tours?.map((t) => (
+            <div key={t.id} className="rounded-lg border border-border bg-card p-4" style={{ borderLeft: `6px solid ${t.primary_color}` }}>
+              <div className="font-display text-lg font-bold">{t.name}</div>
+              <div className="text-sm text-muted-foreground">{t.overs} overs · {t.players_per_team} a side</div>
+              <div className="mt-3 flex gap-2">
+                <Button asChild size="sm" variant="outline"><Link to="/t/$tournamentId" params={{ tournamentId: t.id }}>View</Link></Button>
+                <Button asChild size="sm"><Link to="/tournaments/$tournamentId/manage" params={{ tournamentId: t.id }}>Manage</Link></Button>
               </div>
             </div>
           ))}

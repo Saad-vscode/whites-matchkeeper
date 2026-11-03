@@ -101,9 +101,9 @@ function NewTournament() {
   );
 }
 
-export function Sec({ title, children }: { title: string; children: React.ReactNode }) {
+function Sec({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="space-y-4"><h2 className="border-b border-border pb-1 text-xl font-bold">{title}</h2>{children}</section>;
 }
-export function F({ label, children }: { label: string; children: React.ReactNode }) {
+function F({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="space-y-1.5"><Label>{label}</Label>{children}</div>;
 }
