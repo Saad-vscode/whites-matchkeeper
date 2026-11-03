@@ -51,7 +51,7 @@ function Manage() {
     const { error } = await supabase.from("tournament_teams").insert({
       tournament_id: t.id, name: team.name.trim(), short_name: team.short.trim() || null, color: team.color, players: names,
     });
-    if (error) return toast.error(error.message.includes("duplicate") ? "A team with that name already exists." : error.message);
+    if (error) { toast.error(error.message.includes("duplicate") ? "A team with that name already exists." : error.message); return; }
     setTeam({ name: "", short: "", color: "#1f4d3a", players: "" });
     reload();
   };
@@ -65,7 +65,7 @@ function Manage() {
     e.preventDefault();
     const A = data.teams.find((x) => x.id === fx.a);
     const B = data.teams.find((x) => x.id === fx.b);
-    if (!A || !B || A.id === B.id) return toast.error("Pick two different teams.");
+    if (!A || !B || A.id === B.id) { toast.error("Pick two different teams."); return; }
     const fill = (list: string[], name: string) => {
       const out = list.slice(0, t.players_per_team);
       for (let i = out.length; i < t.players_per_team; i++) out.push(`${name} ${i + 1}`);
@@ -79,7 +79,7 @@ function Manage() {
       overs: t.overs, balls_per_over: t.balls_per_over, players_per_team: t.players_per_team, rules: t.rules,
       venue: fx.venue.trim() || null, match_date: fx.date || null,
     }).select("id").single();
-    if (error || !m) return toast.error(error?.message ?? "Could not add fixture");
+    if (error || !m) { toast.error(error?.message ?? "Could not add fixture"); return; }
     if (fx.scorer.trim()) {
       const { error: e2 } = await supabase.rpc("assign_scorer", { _match: m.id, _email: fx.scorer.trim() });
       if (e2) toast.error(`Fixture added, but scorer not added: ${e2.message}`);

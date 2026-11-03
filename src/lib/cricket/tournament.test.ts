@@ -24,11 +24,11 @@ describe("tournament standings", () => {
       pts,
       6,
     );
-    const by = Object.fromEntries(t.map((r) => [r.teamId, r]));
-    expect(by.a.points).toBe(2);
-    expect(by.b.points).toBe(1);
-    expect(by.c.points).toBe(1);
-    expect(t[0].teamId).toBe("a");
+    const pt = (id: string) => t.find((r) => r.teamId === id)!.points;
+    expect(pt("a")).toBe(2);
+    expect(pt("b")).toBe(1);
+    expect(pt("c")).toBe(1);
+    expect(t[0]!.teamId).toBe("a");
   });
 
   it("ignores unfinished matches", () => {

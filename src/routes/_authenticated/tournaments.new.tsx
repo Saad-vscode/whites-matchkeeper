@@ -35,7 +35,7 @@ function NewTournament() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!f.name.trim()) return toast.error("Enter a tournament name.");
+    if (!f.name.trim()) { toast.error("Enter a tournament name."); return; }
     setBusy(true);
     const { data: u } = await supabase.auth.getUser();
     const { data, error } = await supabase.from("tournaments").insert({
@@ -50,7 +50,7 @@ function NewTournament() {
       points_win: f.win, points_tie: f.tie, points_loss: f.loss,
     }).select("id").single();
     setBusy(false);
-    if (error || !data) return toast.error(error?.message ?? "Could not create tournament");
+    if (error || !data) { toast.error(error?.message ?? "Could not create tournament"); return; }
     navigate({ to: "/tournaments/$tournamentId/manage", params: { tournamentId: data.id } });
   };
 
