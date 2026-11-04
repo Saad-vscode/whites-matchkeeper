@@ -15,3 +15,5 @@
 - `matches.live` only holds who is on strike / non-strike / bowling and the current innings. Why: those are scorer choices the log cannot infer.
 - Deliveries use client-generated UUIDs plus unique (match, innings, seq). Why: a ball can never be counted twice.
 - Permissions are enforced by RLS helpers `is_match_owner` / `can_score`; spectators read publicly. Why: backend is the authority.
+- Scoring mutations use the atomic apply_score_operation RPC with durable per-user device queues and revision checks; conflicts stop replay until explicitly resolved. Why: offline retries must not duplicate balls or overwrite another scorer.
+- Register the generated app-shell worker only through src/lib/pwa.ts outside development and preview; use NetworkFirst navigation. Why: offline support must never strand previews on stale code.

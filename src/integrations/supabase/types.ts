@@ -109,6 +109,7 @@ export type Database = {
           players_per_team: number
           result: string | null
           rules: Json
+          score_revision: number
           status: string
           team_a: string
           team_a_id: string | null
@@ -134,6 +135,7 @@ export type Database = {
           players_per_team?: number
           result?: string | null
           rules?: Json
+          score_revision?: number
           status?: string
           team_a: string
           team_a_id?: string | null
@@ -159,6 +161,7 @@ export type Database = {
           players_per_team?: number
           result?: string | null
           rules?: Json
+          score_revision?: number
           status?: string
           team_a?: string
           team_a_id?: string | null
@@ -192,6 +195,50 @@ export type Database = {
             columns: ["tournament_id"]
             isOneToOne: false
             referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      score_operations: {
+        Row: {
+          actor_id: string
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          id: string
+          kind: string
+          match_id: string
+          reason: string | null
+          revision: number
+        }
+        Insert: {
+          actor_id: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          id: string
+          kind: string
+          match_id: string
+          reason?: string | null
+          revision: number
+        }
+        Update: {
+          actor_id?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          id?: string
+          kind?: string
+          match_id?: string
+          reason?: string | null
+          revision?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "score_operations_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
             referencedColumns: ["id"]
           },
         ]
@@ -311,6 +358,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_score_operation: {
+        Args: {
+          _delivery: Json
+          _expected: number
+          _id: string
+          _kind: string
+          _match: string
+          _patch: Json
+          _reason: string
+        }
+        Returns: Json
+      }
       assign_scorer: {
         Args: { _email: string; _match: string }
         Returns: undefined
@@ -325,6 +384,7 @@ export type Database = {
       }
       is_match_owner: { Args: { _match: string }; Returns: boolean }
       is_tournament_owner: { Args: { _t: string }; Returns: boolean }
+      scoring_snapshot: { Args: { _match: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"
