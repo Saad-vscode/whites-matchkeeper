@@ -71,7 +71,7 @@ export function derive(m: MatchRow, deliveries: Delivery[]): Derived {
     target: innings === 2 ? target : null,
     battingSide: bs,
     bowlingSide: bs ? (bs === "A" ? "B" : "A") : null,
-    result: m.result ?? (innings === 2 ? matchResult(first, second, cfg, teamName(m, battingSide(m, 1)), teamName(m, battingSide(m, 2))) : null),
+    result: (innings === 2 ? matchResult(first, second, cfg, teamName(m, battingSide(m, 1)), teamName(m, battingSide(m, 2))) : null),
   };
 }
 
@@ -96,6 +96,8 @@ export function useLiveMatch(matchId: string) {
       setError(m.error?.message ?? "Match not found");
       return;
     }
+    if (d.error) { setError(d.error.message); return; }
+    setError(null);
     setMatch(m.data);
     setDeliveries((d.data ?? []) as unknown as Delivery[]);
     setLastUpdated(new Date());
@@ -119,6 +121,10 @@ export function useLiveMatch(matchId: string) {
           if (p.eventType === "DELETE") {
             const id = (p.old as { id?: string }).id;
             return prev.filter((x) => x.id !== id);
+          }
+          if (p.eventType === "UPDATE") {
+            const n = p.new as unknown as Delivery;
+            return prev.map((x) => x.id === n.id ? n : x);
           }
           return prev;
         });

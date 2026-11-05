@@ -30,7 +30,8 @@ import {
   type ExtraType,
   type Wicket,
 } from "@/lib/cricket/engine";
-import { battingSide, getLive, teamName, teamPlayers, useLiveMatch, type LiveState, type MatchRow } from "@/lib/cricket/match";
+import { battingSide, getLive, teamName, teamPlayers, type LiveState, type MatchRow } from "@/lib/cricket/match";
+import { useScoring } from "@/lib/cricket/use-scoring";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/score/$matchId")({
@@ -40,6 +41,8 @@ export const Route = createFileRoute("/_authenticated/score/$matchId")({
       { name: "description", content: "Ball-by-ball scoring console." },
       { property: "og:title", content: "Scoring — Crease" },
       { property: "og:description", content: "Ball-by-ball scoring console." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ScorePage,
@@ -47,11 +50,11 @@ export const Route = createFileRoute("/_authenticated/score/$matchId")({
 
 function ScorePage() {
   const { matchId } = Route.useParams();
-  const lm = useLiveMatch(matchId);
+  const { user } = Route.useRouteContext();
+  const lm = useScoring(matchId, user.id);
   const { match, derived } = lm;
 
-  if (lm.error) return <Centered>{lm.error}</Centered>;
-  if (!match || !derived) return <Centered>Loading match…</Centered>;
+  if (!match || !derived) return <Centered>{lm.error ?? (lm.online ? "Loading match…" : "This match has not been opened on this device yet. Connect once to score offline.")}</Centered>;
 
   const needsToss = !match.toss_winner;
   return (
@@ -64,8 +67,9 @@ function ScorePage() {
           <ConnBadge conn={lm.conn} lastUpdated={lm.lastUpdated} />
         </div>
       </div>
-      <main className="mx-auto max-w-xl px-3 py-4">
-        {needsToss ? <TossSetup match={match} onDone={lm.refetch} /> : <Scorer lm={lm} />}
+      <main className="mx-auto max-w-xl space-y-3 px-3 py-4">
+        <SyncBanner lm={lm} />
+        {needsToss ? <TossSetup match={match} onSave={(patch) => lm.mutate({ kind: "state", delivery: null, patch, reason: "" })} /> : <Scorer lm={lm} />}
       </main>
     </div>
   );
@@ -77,20 +81,33 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 /* ---------------------------------- Toss --------------------------------- */
 
-function TossSetup({ match, onDone }: { match: MatchRow; onDone: () => void }) {
+function SyncBanner({ lm }: { lm: LM }) {
+  if (lm.conflict) return (
+    <div className="space-y-2 rounded-lg border-2 border-destructive bg-card p-3 text-sm">
+      <p className="font-semibold">Another scorer changed this match while you were scoring.</p>
+      <p className="text-muted-foreground">{lm.pending} change{lm.pending === 1 ? "" : "s"} on this device were not added, so nothing was overwritten. Using the latest match first downloads a copy of your unsaved changes.</p>
+      <Button size="sm" variant="destructive" disabled={!lm.online} onClick={lm.useServer}>Use latest match</Button>
+    </div>
+  );
+  if (!lm.online || lm.pending || lm.error) return (
+    <div className="rounded-lg border border-border bg-card p-3 text-sm">
+      <b>{!lm.online ? "Offline — scoring is saved on this device." : lm.syncing ? "Sending saved balls…" : lm.error ? "Waiting to send saved balls." : "Saved balls are waiting."}</b>
+      {lm.pending > 0 && <span className="text-muted-foreground"> {lm.pending} waiting to send.</span>}
+      {lm.error && <p className="mt-1 text-muted-foreground">{lm.error}</p>}
+    </div>
+  );
+  return null;
+}
+
+function TossSetup({ match, onSave }: { match: MatchRow; onSave: (patch: Partial<MatchRow>) => Promise<boolean> }) {
   const [winner, setWinner] = useState<"A" | "B" | null>(null);
   const [decision, setDecision] = useState<"bat" | "bowl" | null>(null);
   const [saving, setSaving] = useState(false);
   const save = async () => {
     if (!winner || !decision) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("matches")
-      .update({ toss_winner: winner, toss_decision: decision, live: { innings: 1 } })
-      .eq("id", match.id);
+    await onSave({ toss_winner: winner, toss_decision: decision, live: { innings: 1 } as never });
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    onDone();
   };
   return (
     <div className="space-y-6">
@@ -141,7 +158,8 @@ function Summary({ match }: { match: MatchRow }) {
 
 function Choice({ active, onClick, children, className }: { active?: boolean; onClick: () => void; children: React.ReactNode; className?: string }) {
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       onClick={onClick}
       className={cn(
@@ -151,17 +169,18 @@ function Choice({ active, onClick, children, className }: { active?: boolean; on
       )}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
 /* --------------------------------- Scorer -------------------------------- */
 
-type LM = ReturnType<typeof useLiveMatch>;
+type LM = ReturnType<typeof useScoring>;
 
 function Scorer({ lm }: { lm: LM }) {
-  const match = lm.match!;
-  const d = lm.derived!;
+  const match = lm.match;
+  const d = lm.derived;
+  if (!match || !d) return null;
   const live = getLive(match);
   const s = d.current;
   const innings = d.innings;
@@ -171,7 +190,7 @@ function Scorer({ lm }: { lm: LM }) {
   const [dialog, setDialog] = useState<null | "wide" | "noball" | "bye" | "legbye" | "penalty" | "wicket" | "other">(null);
   const [confirmUndo, setConfirmUndo] = useState(false);
 
-  const finished = match.status === "completed" || match.status === "abandoned" || match.status === "cancelled";
+  const finished = lm.conflict || match.status === "completed" || match.status === "abandoned" || match.status === "cancelled";
   const lastManAlone = d.cfg.rules.lastManBats && s.wickets === d.cfg.playersPerTeam - 1;
   const needStriker = !live.striker;
   const needNon = !live.nonStriker && !lastManAlone;
@@ -180,19 +199,10 @@ function Scorer({ lm }: { lm: LM }) {
 
   const outPlayers = useMemo(() => new Set(s.batters.filter((b) => b.out && countsAsWicket(b.out)).map((b) => b.name)), [s]);
 
-  const updateLive = async (patch: Partial<MatchRow>) => {
-    lm.setMatch((m) => (m ? { ...m, ...patch } : m));
-    const { error } = await supabase.from("matches").update(patch).eq("id", match.id);
-    if (error) {
-      toast.error(error.message);
-      lm.refetch();
-      return false;
-    }
-    return true;
-  };
+  const updateLive = (patch: Partial<MatchRow>) => lm.mutate({ kind: "state", delivery: null, patch, reason: "" });
 
   const record = async (p: { runs_bat?: number; extra_type?: ExtraType; extras?: number; wicket?: Wicket | null; swapAfter?: boolean }) => {
-    if (busy || needsSelection || finished) return;
+    if (busy || needsSelection || finished || s.complete) return;
     if (!live.striker || !live.bowler) return;
     setBusy(true);
     const mine = lm.deliveries.filter((x) => x.innings === innings);
@@ -209,16 +219,7 @@ function Scorer({ lm }: { lm: LM }) {
       extras: p.extras ?? 0,
       wicket: p.wicket ?? null,
     };
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("deliveries").insert({ ...del, match_id: match.id, wicket: del.wicket as never, created_by: u.user!.id });
-    if (error) {
-      setBusy(false);
-      toast.error(error.code === "23505" ? "That ball was already recorded — refreshing." : error.message);
-      lm.refetch();
-      return;
-    }
     const all = [...lm.deliveries, del];
-    lm.setDeliveries(all);
     const target = innings === 2 ? d.target : null;
     const ns = computeInnings(all.filter((x) => x.innings === innings), d.cfg, target);
     let next: LiveState = {
@@ -243,7 +244,7 @@ function Scorer({ lm }: { lm: LM }) {
         toast.success(res ?? "Match complete");
       }
     }
-    await updateLive(patch);
+    await lm.mutate({ kind: "ball", delivery: del, patch, reason: "" });
     setBusy(false);
     setDialog(null);
   };
@@ -259,17 +260,10 @@ function Scorer({ lm }: { lm: LM }) {
     const last = mine.sort((a, b) => b.seq - a.seq)[0];
     if (!last) { toast("Nothing to undo."); return; }
     setBusy(true);
-    const { error } = await supabase.from("deliveries").delete().eq("id", last.id);
-    if (error) {
-      setBusy(false);
-      { toast.error(error.message); return; }
-    }
-    lm.setDeliveries(lm.deliveries.filter((x) => x.id !== last.id));
-    await updateLive({
+    await lm.mutate({ kind: "undo", delivery: last, reason: "", patch: {
       status: "live",
-      result: null,
       live: { innings: inn, striker: last.striker, nonStriker: last.non_striker || null, bowler: last.bowler } as never,
-    });
+    } });
     setBusy(false);
     toast("Last ball removed.");
   };
@@ -333,7 +327,7 @@ function Scorer({ lm }: { lm: LM }) {
 
       {match.status === "completed" && (
         <div className="rounded-lg border-2 border-primary bg-card p-4 text-center">
-          <div className="font-display text-2xl font-bold text-primary">{match.result}</div>
+          <div className="font-display text-2xl font-bold text-primary">{d.result}</div>
           <Button variant="ghost" size="sm" className="mt-2" onClick={() => setConfirmUndo(true)}>Undo last ball</Button>
         </div>
       )}
@@ -402,6 +396,8 @@ function Scorer({ lm }: { lm: LM }) {
         </section>
       )}
 
+      <BallHistory lm={lm} />
+      <ChangeHistory matchId={match.id} online={lm.online} pending={lm.pending} />
       <ShareLinks match={match} />
       <ScorerAdmin match={match} />
 
@@ -461,7 +457,8 @@ function RunBtn({
             ? "bg-extra text-foreground border-extra"
             : "bg-card text-foreground border-border";
   return (
-    <button
+    <Button
+      variant="ghost"
       type="button"
       onClick={onClick}
       disabled={disabled}
@@ -473,7 +470,7 @@ function RunBtn({
       )}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -544,7 +541,8 @@ function Picker({ label, options, value, onChange, disabled }: { label: string; 
       <div className="flex flex-wrap gap-1.5">
         {options.length === 0 && <span className="text-sm text-muted-foreground">No players available</span>}
         {options.map((p) => (
-          <button
+          <Button
+            variant="ghost"
             key={p}
             type="button"
             onClick={() => onChange(p)}
@@ -555,7 +553,7 @@ function Picker({ label, options, value, onChange, disabled }: { label: string; 
             )}
           >
             {p}
-          </button>
+          </Button>
         ))}
       </div>
     </div>
@@ -668,7 +666,7 @@ function ExtrasDialog({
                 variant="destructive"
                 className="w-full"
                 disabled={busy || !victim}
-                onClick={() => onRecord({ runs_bat: wk === "run_out" ? roRuns : 0, wicket: { kind: wk, playerOut: victim!, fielder } })}
+                onClick={() => onRecord({ runs_bat: wk === "run_out" ? roRuns : 0, wicket: { kind: wk, playerOut: victim ?? "", fielder } })}
               >
                 Confirm wicket
               </Button>
@@ -677,6 +675,70 @@ function ExtrasDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ------------------------- Corrections and history ------------------------ */
+
+function BallHistory({ lm }: { lm: LM }) {
+  const [edit, setEdit] = useState<Delivery | null>(null);
+  const [reason, setReason] = useState("");
+  const balls = [...lm.deliveries].sort((a, b) => b.innings - a.innings || b.seq - a.seq);
+  const save = async () => {
+    if (!edit || !reason.trim()) return;
+    if (await lm.mutate({ kind: "edit", delivery: edit, patch: {}, reason: reason.trim() })) { setEdit(null); setReason(""); toast.success("Ball corrected. Totals were recalculated."); }
+  };
+  const n = (k: "runs_bat" | "extras", v: string) => edit && setEdit({ ...edit, [k]: Math.max(0, Math.min(k === "runs_bat" ? 12 : 20, Number(v) || 0)) });
+  return (
+    <details className="rounded-lg border border-border bg-card p-3 text-sm">
+      <summary className="cursor-pointer font-semibold">Correct an earlier ball</summary>
+      <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
+        {balls.length === 0 && <p className="text-muted-foreground">No balls yet.</p>}
+        {balls.map((b) => (
+          <Button variant="ghost" key={b.id} type="button" disabled={lm.conflict} onClick={() => setEdit({ ...b })} className="flex w-full items-center gap-2 rounded-md p-1.5 text-left hover:bg-muted">
+            <BallChip d={b} /><span className="flex-1">Innings {b.innings}, ball {b.seq}: {b.bowler} to {b.striker}</span><span className="text-primary">Edit</span>
+          </Button>
+        ))}
+      </div>
+      <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Correct ball {edit?.seq}</DialogTitle></DialogHeader>
+          {edit && <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1"><Label>Runs off bat</Label><Input type="number" min={0} max={12} value={edit.runs_bat} onChange={(e) => n("runs_bat", e.target.value)} /></div>
+              <div className="space-y-1"><Label>Extra runs</Label><Input type="number" min={0} max={20} value={edit.extras} onChange={(e) => n("extras", e.target.value)} /></div>
+            </div>
+            <div className="space-y-1"><Label>Ball type</Label><select className="h-10 w-full rounded-md border border-input bg-background px-3" value={edit.extra_type} onChange={(e) => setEdit({ ...edit, extra_type: e.target.value as ExtraType, extras: e.target.value === "none" ? 0 : edit.extras })}>
+              <option value="none">Normal</option><option value="wide">Wide</option><option value="noball">No ball</option><option value="bye">Bye</option><option value="legbye">Leg bye</option><option value="penalty">Penalty</option>
+            </select></div>
+            {edit.wicket && <label className="flex items-center gap-2"><input type="checkbox" checked={!!edit.wicket} onChange={() => setEdit({ ...edit, wicket: null })} />Keep wicket ({edit.wicket.playerOut})</label>}
+            <div className="space-y-1"><Label>Reason for correction</Label><Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Umpire signalled four" /></div>
+            <p className="text-xs text-muted-foreground">Check who is batting and bowling afterwards; they will not be changed automatically.</p>
+            <Button className="w-full" disabled={!reason.trim()} onClick={save}>Save correction</Button>
+          </div>}
+        </DialogContent>
+      </Dialog>
+    </details>
+  );
+}
+
+function ChangeHistory({ matchId, online, pending }: { matchId: string; online: boolean; pending: number }) {
+  const [rows, setRows] = useState<{ id: string; kind: string; reason: string | null; created_at: string; revision: number }[] | null>(null);
+  const load = async () => {
+    const { data, error } = await supabase.from("score_operations").select("id,kind,reason,created_at,revision").eq("match_id", matchId).order("revision", { ascending: false }).limit(100);
+    if (error) toast.error(error.message); else setRows(data);
+  };
+  const label = { ball: "Ball added", undo: "Last ball undone", edit: "Ball corrected", state: "Players or match state changed" } as Record<string, string>;
+  return (
+    <details className="rounded-lg border border-border bg-card p-3 text-sm" onToggle={(e) => e.currentTarget.open && online && load()}>
+      <summary className="cursor-pointer font-semibold">Change history</summary>
+      <div className="mt-3 max-h-72 space-y-2 overflow-y-auto">
+        {!online && <p className="text-muted-foreground">Connect to see the shared history.</p>}
+        {pending > 0 && <p className="text-muted-foreground">{pending} change{pending === 1 ? "" : "s"} still waiting on this device.</p>}
+        {rows?.length === 0 && <p className="text-muted-foreground">No sent changes yet.</p>}
+        {rows?.map((r) => <div key={r.id} className="border-b border-border pb-1 last:border-0"><b>{label[r.kind] ?? r.kind}</b> <span className="text-muted-foreground">· {new Date(r.created_at).toLocaleString()}</span>{r.reason && <div>Reason: {r.reason}</div>}</div>)}
+      </div>
+    </details>
   );
 }
 

@@ -12,6 +12,8 @@ export const Route = createFileRoute("/display/$matchId")({
       { name: "description", content: "Full-screen live cricket scoreboard for TVs and projectors." },
       { property: "og:title", content: "Scoreboard — Crease" },
       { property: "og:description", content: "Full-screen live cricket scoreboard for TVs and projectors." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Display,

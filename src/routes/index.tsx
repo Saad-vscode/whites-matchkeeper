@@ -11,6 +11,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Score cricket ball by ball and share live scoreboards with everyone watching." },
       { property: "og:title", content: "Crease — Live Cricket Scoring" },
       { property: "og:description", content: "Score cricket ball by ball and share live scoreboards with everyone watching." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Index,

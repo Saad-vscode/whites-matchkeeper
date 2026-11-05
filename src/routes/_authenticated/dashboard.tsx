@@ -3,6 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { SiteHeader, StatusPill } from "@/components/cricket/bits";
+import { useEffect, useState } from "react";
+import { loadDraft, replay } from "@/lib/cricket/offline";
+import type { MatchRow } from "@/lib/cricket/match";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -11,6 +14,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       { name: "description", content: "Matches you created or score." },
       { property: "og:title", content: "My matches — Crease" },
       { property: "og:description", content: "Matches you created or score." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Dashboard,
@@ -18,6 +23,17 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const { user } = Route.useRouteContext();
+  const [saved, setSaved] = useState<MatchRow[]>([]);
+  useEffect(() => {
+    const matches: MatchRow[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(`crease:score:v1:${user.id}:`)) continue;
+      const draft = loadDraft(key);
+      if (draft) matches.push(replay(draft.base, draft.queue).match);
+    }
+    setSaved(matches);
+  }, [user.id]);
   const { data, isLoading } = useQuery({
     queryKey: ["my-matches", user.id],
     queryFn: async () => {
@@ -47,8 +63,8 @@ function Dashboard() {
         </div>
         <div className="mt-6 space-y-3">
           {isLoading && <p className="text-muted-foreground">Loading…</p>}
-          {data?.length === 0 && <p className="text-muted-foreground">No matches yet. Create your first one.</p>}
-          {data?.map((m) => (
+          {data?.length === 0 && saved.length === 0 && <p className="text-muted-foreground">No matches yet. Create your first one.</p>}
+          {(data?.length ? data : saved).map((m) => (
             <div key={m.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4">
               <div>
                 <div className="flex items-center gap-2">

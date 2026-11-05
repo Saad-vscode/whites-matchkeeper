@@ -11,6 +11,8 @@ export const Route = createFileRoute("/match/$matchId")({
       { name: "description", content: "Live ball-by-ball score and full scorecard." },
       { property: "og:title", content: "Live score — Crease" },
       { property: "og:description", content: "Live ball-by-ball score and full scorecard." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Spectator,

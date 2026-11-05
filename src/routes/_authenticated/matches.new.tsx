@@ -16,6 +16,8 @@ export const Route = createFileRoute("/_authenticated/matches/new")({
       { name: "description", content: "Set up a quick cricket match with your own rules." },
       { property: "og:title", content: "New match — Crease" },
       { property: "og:description", content: "Set up a quick cricket match with your own rules." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: NewMatch,

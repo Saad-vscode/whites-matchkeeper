@@ -1,0 +1,2 @@
+REVOKE UPDATE ON public.matches FROM authenticated;
+COMMENT ON TABLE public.score_operations IS 'Append-only scoring audit with immutable actor and before/after events; written only by apply_score_operation';

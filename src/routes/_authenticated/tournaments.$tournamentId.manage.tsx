@@ -16,6 +16,8 @@ export const Route = createFileRoute("/_authenticated/tournaments/$tournamentId/
       { name: "description", content: "Add teams, players and fixtures to your tournament." },
       { property: "og:title", content: "Manage tournament — Crease" },
       { property: "og:description", content: "Add teams, players and fixtures to your tournament." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: Manage,

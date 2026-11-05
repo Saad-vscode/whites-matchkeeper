@@ -20,7 +20,8 @@ export function matchOutcome(m: MatchRow, deliveries: Delivery[]): Outcome | nul
   if (!m.toss_winner) return null;
   const d = derive(m, deliveries);
   if (!d.first.complete || !d.second.complete) return null;
-  const s1 = battingSide(m, 1)!;
+  const s1 = battingSide(m, 1);
+  if (!s1) return null;
   const s2 = s1 === "A" ? "B" : "A";
   const quota = d.cfg.overs * d.cfg.ballsPerOver;
   const balls = (st: typeof d.first) => (st.endReason === "all_out" ? quota : st.legalBalls);

@@ -15,6 +15,8 @@ export const Route = createFileRoute("/_authenticated/tournaments/new")({
       { name: "description", content: "Create a branded cricket tournament with fixtures and a points table." },
       { property: "og:title", content: "New tournament — Crease" },
       { property: "og:description", content: "Create a branded cricket tournament with fixtures and a points table." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: NewTournament,

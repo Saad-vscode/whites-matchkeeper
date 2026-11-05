@@ -29,6 +29,13 @@
       "when": 1793750572275,
       "tag": "0003_scoring_writes_via_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793837010125,
+      "tag": "0004_require_atomic_match_updates",
+      "breakpoints": true
     }
   ]
 }
