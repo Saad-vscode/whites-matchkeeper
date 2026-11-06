@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumField } from "@/components/cricket/num-field";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -100,7 +101,7 @@ function NewMatch() {
   };
 
   const num = (k: "overs" | "bpo" | "players" | "wideRuns" | "noBallRuns", min: number, max: number) => (
-    <Input type="number" min={min} max={max} value={f[k]} onChange={(e) => set(k, Math.max(min, Math.min(max, Number(e.target.value) || min)))} />
+    <NumField min={min} max={max} value={f[k]} onChange={(v) => set(k, v)} />
   );
 
   return (

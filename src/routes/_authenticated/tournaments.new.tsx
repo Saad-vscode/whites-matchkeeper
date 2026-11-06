@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumField } from "@/components/cricket/num-field";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { SiteHeader } from "@/components/cricket/bits";
@@ -32,7 +33,7 @@ function NewTournament() {
   const [busy, setBusy] = useState(false);
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => setF((p) => ({ ...p, [k]: v }));
   const num = (k: "overs" | "bpo" | "players" | "wideRuns" | "noBallRuns" | "win" | "tie" | "loss", min: number, max: number) => (
-    <Input type="number" min={min} max={max} value={f[k]} onChange={(e) => set(k, Math.max(min, Math.min(max, Number(e.target.value) || 0)))} />
+    <NumField min={min} max={max} value={f[k]} onChange={(v) => set(k, v)} />
   );
 
   const submit = async (e: React.FormEvent) => {
