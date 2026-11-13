@@ -1,22 +1,47 @@
+import { TournamentName } from "@/components/cricket/tournament-name";
+import { MatchAward } from "@/components/cricket/match-award";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { BallChip, ConnBadge, SiteHeader, StatusPill } from "@/components/cricket/bits";
+import { BallChip, ConnBadge, StatusPill } from "@/components/cricket/bits";
 import { Segmented, TeamBadge, UnderlineTabs } from "@/components/cricket/tabs";
-import { ballLabel, countsAsWicket, economy, formatOvers, runRate, strikeRate, type Delivery, type InningsState } from "@/lib/cricket/engine";
-import { battingSide, getLive, teamName, useLiveMatch, type Derived, type MatchRow } from "@/lib/cricket/match";
+import {
+  ballLabel,
+  countsAsWicket,
+  economy,
+  formatOvers,
+  runRate,
+  strikeRate,
+  type Delivery,
+  type InningsState,
+} from "@/lib/cricket/engine";
+import {
+  battingSide,
+  getLive,
+  teamName,
+  useLiveMatch,
+  type Derived,
+  type MatchRow,
+} from "@/lib/cricket/match";
 import { describeBall, fallOfWickets, maidens, overGroups } from "@/lib/cricket/scorecard";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { matchStageTitle } from "@/lib/cricket/match-stage";
 
 export const Route = createFileRoute("/match/$matchId")({
   head: () => ({
     meta: [
       { title: "Live score — Crease" },
-      { name: "description", content: "Live summary, full scorecard, ball-by-ball and match info." },
+      {
+        name: "description",
+        content: "Live summary, full scorecard, ball-by-ball and match info.",
+      },
       { property: "og:title", content: "Live score — Crease" },
-      { property: "og:description", content: "Live summary, full scorecard, ball-by-ball and match info." },
+      {
+        property: "og:description",
+        content: "Live summary, full scorecard, ball-by-ball and match info.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -32,11 +57,15 @@ function Spectator() {
   const [tab, setTab] = useState<Tab>("summary");
   const { data: tour } = useQuery({
     queryKey: ["match-tournament", match?.tournament_id],
+    refetchInterval: 5000,
     enabled: !!match?.tournament_id,
     queryFn: async () => {
       const [t, teams] = await Promise.all([
         supabase.from("tournaments").select("*").eq("id", match!.tournament_id!).maybeSingle(),
-        supabase.from("tournament_teams").select("id,color,logo_url").eq("tournament_id", match!.tournament_id!),
+        supabase
+          .from("tournament_teams")
+          .select("id,color,logo_url")
+          .eq("tournament_id", match!.tournament_id!),
       ]);
       return { t: t.data, teams: teams.data ?? [] };
     },
@@ -46,30 +75,73 @@ function Spectator() {
   const look = (side: "A" | "B" | null) => {
     const id = side === "A" ? match.team_a_id : side === "B" ? match.team_b_id : null;
     const t = tour?.teams.find((x) => x.id === id);
-    return { name: teamName(match, side), color: t?.color, logo: t?.logo_url };
+    return { name: teamName(match, side), color: t?.color ?? null, logo: t?.logo_url ?? null };
   };
-  const bs1 = battingSide(match, 1), bs2 = battingSide(match, 2);
-  const inn1 = deliveries.filter((x) => x.innings === 1), inn2 = deliveries.filter((x) => x.innings === 2);
+  const bs1 = battingSide(match, 1),
+    bs2 = battingSide(match, 2);
+  const inn1 = deliveries.filter((x) => x.innings === 1),
+    inn2 = deliveries.filter((x) => x.innings === 2);
 
   return (
-    <div className="min-h-screen">
-      <SiteHeader />
-      <main className="mx-auto max-w-3xl space-y-4 px-4 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <ConnBadge conn={conn} lastUpdated={lastUpdated} />
-          <Button asChild size="sm" variant="outline"><Link to="/display/$matchId" params={{ matchId }}>TV scoreboard</Link></Button>
-        </div>
-        <LiveHeader match={match} d={d} />
-        {match.toss_winner && (
-          <>
-            <UnderlineTabs value={tab} onChange={setTab} tabs={[{ id: "summary", label: "Summary" }, { id: "scorecard", label: "Scorecard" }, { id: "balls", label: "Balls" }, { id: "info", label: "Info" }]} />
-            {tab === "summary" && <Summary match={match} d={d} look={look} />}
-            {tab === "scorecard" && <Scorecard match={match} d={d} inn1={inn1} inn2={inn2} />}
-            {tab === "balls" && <Balls d={d} inn1={inn1} inn2={inn2} n1={teamName(match, bs1)} n2={teamName(match, bs2)} />}
-          </>
-        )}
-        {(tab === "info" || !match.toss_winner) && <Info match={match} tour={tour?.t ?? null} look={look} />}
-      </main>
+    <div className="tournament-page scoring-page match-page min-h-screen">
+      <div className="mx-auto max-w-5xl border-x border-slate-100">
+        <header className="relative flex h-20 items-center justify-center border-b border-border px-16">
+          {match.tournament_id ? (
+            <Link
+              to="/t/$tournamentId"
+              params={{ tournamentId: match.tournament_id }}
+              aria-label="Back to tournament"
+              className="absolute left-4 rounded-full p-2 hover:bg-muted"
+            >
+              <ArrowLeft size={24} />
+            </Link>
+          ) : (
+            <Link
+              to="/"
+              aria-label="Back"
+              className="absolute left-4 rounded-full p-2 hover:bg-muted"
+            >
+              <ArrowLeft size={24} />
+            </Link>
+          )}
+          <p className="text-xl font-bold tracking-tight">Match Centre</p>
+        </header>
+        <main className="space-y-6 px-5 py-6 sm:px-8 sm:py-8">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <ConnBadge conn={conn} lastUpdated={lastUpdated} />
+          </div>
+          <LiveHeader match={match} d={d} />
+          <MatchAward match={match} deliveries={deliveries} />
+          {match.toss_winner && (
+            <>
+              <UnderlineTabs
+                value={tab}
+                onChange={setTab}
+                tabs={[
+                  { id: "summary", label: "Summary" },
+                  { id: "scorecard", label: "Scorecard" },
+                  { id: "balls", label: "Balls" },
+                  { id: "info", label: "Info" },
+                ]}
+              />
+              {tab === "summary" && <Summary match={match} d={d} look={look} />}
+              {tab === "scorecard" && <Scorecard match={match} d={d} inn1={inn1} inn2={inn2} />}
+              {tab === "balls" && (
+                <Balls
+                  d={d}
+                  inn1={inn1}
+                  inn2={inn2}
+                  n1={teamName(match, bs1)}
+                  n2={teamName(match, bs2)}
+                />
+              )}
+            </>
+          )}
+          {(tab === "info" || !match.toss_winner) && (
+            <Info match={match} tour={tour?.t ?? null} look={look} />
+          )}
+        </main>
+      </div>
     </div>
   );
 }
@@ -78,75 +150,148 @@ function LiveHeader({ match, d }: { match: MatchRow; d: Derived }) {
   const live = getLive(match);
   const s = d.current;
   return (
-    <section className="rounded-xl bg-board p-5 text-board-foreground shadow-lg">
-      <div className="flex items-center justify-between text-xs uppercase tracking-widest text-board-muted">
-        <span>{match.name}{match.venue ? ` · ${match.venue}` : ""}</span>
+    <section className="rounded-2xl border border-border bg-white p-5 text-foreground shadow-sm sm:p-7">
+      <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
+        <span>
+          {<TournamentName id={match.tournament_id} fallback={match.name}/>}
+          {match.venue ? ` · ${match.venue}` : ""}
+        </span>
         <StatusPill status={match.status} />
       </div>
-      <h1 className="mt-2 text-2xl font-extrabold">{match.team_a} v {match.team_b}</h1>
+      <p className="mt-3 text-sm font-semibold text-primary">
+        {matchStageTitle(match.rules)?.replace(/^Group Stage · /, "") || "Match"}
+      </p>
+      <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+        {match.team_a} v {match.team_b}
+      </h1>
       {match.toss_winner ? (
         <>
-          <div className="mt-3 text-sm text-board-muted">{teamName(match, d.battingSide)} · Innings {d.innings}</div>
-          <div className="flex items-end justify-between">
-            <div className="score-num text-5xl">{s.runs}-{s.wickets}</div>
-            <div className="score-num text-xl">{formatOvers(s.legalBalls, d.cfg.ballsPerOver)} <span className="text-sm text-board-muted">/ {d.cfg.overs} ov</span></div>
+          <div className="mt-3 text-sm text-muted-foreground">
+            {teamName(match, d.battingSide)} · Innings {d.innings}
           </div>
-          <div className="mt-2 flex flex-wrap gap-4 text-sm text-board-muted">
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
+            <div className="score-num text-5xl tracking-tight text-teal-700 sm:text-6xl">
+              {s.runs}-{s.wickets}
+            </div>
+            <div className="score-num text-xl">
+              {formatOvers(s.legalBalls, d.cfg.ballsPerOver)}{" "}
+              <span className="text-sm text-muted-foreground">/ {d.cfg.overs} ov</span>
+            </div>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
             <span>CRR {runRate(s.runs, s.legalBalls, d.cfg.ballsPerOver).toFixed(2)}</span>
-            {d.target != null && !d.result && <span>Need {Math.max(0, d.target - s.runs)} off {d.cfg.overs * d.cfg.ballsPerOver - s.legalBalls}</span>}
+            {d.target != null && !d.result && (
+              <span>
+                Need {Math.max(0, d.target - s.runs)} off{" "}
+                {d.cfg.overs * d.cfg.ballsPerOver - s.legalBalls}
+              </span>
+            )}
           </div>
           {match.status !== "completed" && !d.result && (
             <div className="mt-2 text-sm">
               {live.striker && <span className="mr-4">● {live.striker}</span>}
               {live.nonStriker && <span className="mr-4">{live.nonStriker}</span>}
-              {live.bowler && <span className="text-board-muted">Bowler: {live.bowler}</span>}
+              {live.bowler && <span className="text-muted-foreground">Bowler: {live.bowler}</span>}
             </div>
           )}
-          <div className="mt-3 flex flex-wrap gap-1.5">{s.currentOver.map((b) => <BallChip key={b.id} d={b} />)}</div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {s.currentOver.map((b) => (
+              <BallChip key={b.id} d={b} />
+            ))}
+          </div>
         </>
-      ) : <p className="mt-4 text-board-muted">Waiting for the toss.</p>}
-      {d.result && <div className="mt-3 font-display text-xl font-bold text-extra">{d.result}</div>}
+      ) : (
+        <p className="mt-4 text-muted-foreground">Waiting for the toss.</p>
+      )}
+      {d.result && (
+        <div className="mt-5 rounded-xl bg-teal-50 px-4 py-3 text-base font-semibold text-teal-800">
+          {d.result}
+        </div>
+      )}
     </section>
   );
 }
 
-type Look = (side: "A" | "B" | null) => { name: string; color?: string | null; logo?: string | null };
+type Look = (side: "A" | "B" | null) => {
+  name: string;
+  color?: string | null;
+  logo?: string | null;
+};
 
 function Summary({ match, d, look }: { match: MatchRow; d: Derived; look: Look }) {
   const blocks = [
     { side: battingSide(match, 1), s: d.first },
-    ...(d.innings === 2 || d.second.legalBalls > 0 ? [{ side: battingSide(match, 2), s: d.second }] : []),
+    ...(d.innings === 2 || d.second.legalBalls > 0
+      ? [{ side: battingSide(match, 2), s: d.second }]
+      : []),
   ];
-  const winnerSide = d.result?.startsWith(teamName(match, "A")) ? "A" : d.result?.startsWith(teamName(match, "B")) ? "B" : null;
+  const winnerSide = d.result?.startsWith(teamName(match, "A"))
+    ? "A"
+    : d.result?.startsWith(teamName(match, "B"))
+      ? "B"
+      : null;
   return (
     <div className="space-y-6">
       {blocks.map(({ side, s }) => {
-        const bats = [...s.batters].filter((b) => b.balls > 0 || b.runs > 0).sort((a, b) => b.runs - a.runs).slice(0, 3);
-        const bowls = [...s.bowlers].sort((a, b) => b.wickets - a.wickets || a.runs - b.runs).slice(0, 3);
+        const bats = [...s.batters]
+          .filter((b) => b.balls > 0 || b.runs > 0)
+          .sort((a, b) => b.runs - a.runs)
+          .slice(0, 3);
+        const bowls = [...s.bowlers]
+          .sort((a, b) => b.wickets - a.wickets || a.runs - b.runs)
+          .slice(0, 3);
         return (
-          <section key={side}>
+          <section key={side} className="rounded-2xl border border-border p-4 sm:p-5">
             <div className="flex items-center justify-between border-b border-border pb-2">
               <h2 className="flex items-center gap-2 text-lg font-bold uppercase text-primary">
                 {look(side).name}
-                {match.toss_winner === side && <span title="Won the toss" className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground text-[10px] font-bold text-background">T</span>}
+                {match.toss_winner === side && (
+                  <span
+                    title="Won the toss"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-muted-foreground text-[10px] font-bold text-background"
+                  >
+                    T
+                  </span>
+                )}
               </h2>
-              <span className="score-num text-lg text-primary">{s.runs}-{s.wickets} <span className="text-sm">({formatOvers(s.legalBalls, d.cfg.ballsPerOver)})</span></span>
+              <span className="score-num text-lg text-primary">
+                {s.runs}-{s.wickets}{" "}
+                <span className="text-sm">({formatOvers(s.legalBalls, d.cfg.ballsPerOver)})</span>
+              </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <div className="space-y-2">{bats.map((b) => (
-                <div key={b.name} className="flex justify-between"><span className="text-muted-foreground">{b.name}</span><span className="score-num">{b.runs}{b.out ? "" : "*"}({b.balls})</span></div>
-              ))}</div>
-              <div className="space-y-2">{bowls.map((b) => (
-                <div key={b.name} className="flex justify-between"><span className="text-muted-foreground">{b.name}</span><span className="score-num">{b.wickets}-{b.runs}</span></div>
-              ))}</div>
+              <div className="space-y-2">
+                {bats.map((b) => (
+                  <div key={b.name} className="flex justify-between">
+                    <span className="text-muted-foreground">{b.name}</span>
+                    <span className="score-num">
+                      {b.runs}
+                      {b.out ? "" : "*"}({b.balls})
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2">
+                {bowls.map((b) => (
+                  <div key={b.name} className="flex justify-between">
+                    <span className="text-muted-foreground">{b.name}</span>
+                    <span className="score-num">
+                      {b.wickets}-{b.runs}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         );
       })}
       {d.result && (
-        <div className="flex items-center gap-4 border-y border-border py-5">
+        <div className="flex items-center gap-4 rounded-2xl border border-teal-100 bg-teal-50/50 p-5">
           {winnerSide && <TeamBadge {...look(winnerSide)} size={64} />}
-          <div><div className="text-sm text-muted-foreground">Winner</div><div className="text-lg font-bold uppercase">{d.result}</div></div>
+          <div>
+            <div className="text-sm text-muted-foreground">Winner</div>
+            <div className="text-lg font-bold uppercase">{d.result}</div>
+          </div>
         </div>
       )}
     </div>
@@ -164,7 +309,17 @@ function outText(b: InningsState["batters"][number]) {
   return k;
 }
 
-function Scorecard({ match, d, inn1, inn2 }: { match: MatchRow; d: Derived; inn1: Delivery[]; inn2: Delivery[] }) {
+export function Scorecard({
+  match,
+  d,
+  inn1,
+  inn2,
+}: {
+  match: MatchRow;
+  d: Derived;
+  inn1: Delivery[];
+  inn2: Delivery[];
+}) {
   const [which, setWhich] = useState<"1" | "2">(d.innings === 2 ? "2" : "1");
   const s = which === "1" ? d.first : d.second;
   const ds = which === "1" ? inn1 : inn2;
@@ -174,39 +329,105 @@ function Scorecard({ match, d, inn1, inn2 }: { match: MatchRow; d: Derived; inn1
   const ex = s.extras;
   return (
     <div className="space-y-6">
-      <Segmented value={which} onChange={setWhich} options={[{ id: "1", label: teamName(match, battingSide(match, 1)) }, { id: "2", label: teamName(match, battingSide(match, 2)) }]} />
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-xs uppercase text-primary"><tr><th className="py-2 text-left">Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th className="text-right">SR</th></tr></thead>
+      <Segmented
+        value={which}
+        onChange={setWhich}
+        options={[
+          { id: "1", label: teamName(match, battingSide(match, 1)) },
+          { id: "2", label: teamName(match, battingSide(match, 2)) },
+        ]}
+      />
+      <div className="overflow-x-auto rounded-2xl border border-border p-3 sm:p-5">
+        <table className="w-full min-w-[360px] text-sm tabular-nums">
+          <thead className="text-xs uppercase text-primary">
+            <tr>
+              <th className="py-2 text-left">Batter</th>
+              <th>R</th>
+              <th>B</th>
+              <th>4s</th>
+              <th>6s</th>
+              <th className="text-right">SR</th>
+            </tr>
+          </thead>
           <tbody>
             {s.batters.map((b) => (
               <tr key={b.name} className="border-t border-border text-center">
-                <td className="py-2.5 text-left"><div className="font-semibold">{b.name}</div><div className="text-xs italic text-muted-foreground">{outText(b)}</div></td>
-                <td className="score-num">{b.runs}</td><td>{b.balls}</td><td>{b.fours}</td><td>{b.sixes}</td><td className="text-right">{strikeRate(b.runs, b.balls).toFixed(1)}</td>
+                <td className="py-2.5 text-left">
+                  <div className="font-semibold">{b.name}</div>
+                  <div className="text-xs italic text-muted-foreground">{outText(b)}</div>
+                </td>
+                <td className="score-num">{b.runs}</td>
+                <td>{b.balls}</td>
+                <td>{b.fours}</td>
+                <td>{b.sixes}</td>
+                <td className="text-right">{strikeRate(b.runs, b.balls).toFixed(1)}</td>
               </tr>
             ))}
-            {s.batters.length === 0 && <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">Innings not started.</td></tr>}
+            {s.batters.length === 0 && (
+              <tr>
+                <td colSpan={6} className="py-4 text-center text-muted-foreground">
+                  Innings not started.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-        <div className="flex justify-between"><span>Extras</span><span className="score-num">{ex.total}</span></div>
-        <div className="flex justify-between"><span>Overs</span><span className="score-num">{formatOvers(s.legalBalls, bpo)}</span></div>
-        <div className="flex justify-between font-bold text-primary"><span>Total</span><span className="score-num">{s.runs}/{s.wickets}</span></div>
-        <div className="flex justify-between"><span>Run rate</span><span className="score-num">{runRate(s.runs, s.legalBalls, bpo).toFixed(2)}</span></div>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-2xl bg-muted/60 p-4 text-sm sm:p-5">
+        <div className="flex justify-between">
+          <span>Extras</span>
+          <span className="score-num">{ex.total}</span>
+        </div>
+        <div className="flex justify-between">
+          <span>Overs</span>
+          <span className="score-num">{formatOvers(s.legalBalls, bpo)}</span>
+        </div>
+        <div className="flex justify-between font-bold text-primary">
+          <span>Total</span>
+          <span className="score-num">
+            {s.runs}/{s.wickets}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span>Run rate</span>
+          <span className="score-num">{runRate(s.runs, s.legalBalls, bpo).toFixed(2)}</span>
+        </div>
         <div className="col-span-2 text-xs text-muted-foreground">
-          {[["WD", ex.wide], ["NB", ex.noball], ["B", ex.bye], ["LB", ex.legbye], ["P", ex.penalty]].filter(([, v]) => Number(v) > 0).map(([k, v]) => `${k} ${v}`).join(" · ") || "No extras"}
+          {[
+            ["WD", ex.wide],
+            ["NB", ex.noball],
+            ["B", ex.bye],
+            ["LB", ex.legbye],
+            ["P", ex.penalty],
+          ]
+            .filter(([, v]) => Number(v) > 0)
+            .map(([k, v]) => `${k} ${v}`)
+            .join(" · ") || "No extras"}
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-xs uppercase text-primary"><tr><th className="py-2 text-left">Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Eco</th><th className="text-right">Ext</th></tr></thead>
+      <div className="overflow-x-auto rounded-2xl border border-border p-3 sm:p-5">
+        <table className="w-full min-w-[360px] text-sm tabular-nums">
+          <thead className="text-xs uppercase text-primary">
+            <tr>
+              <th className="py-2 text-left">Bowler</th>
+              <th>O</th>
+              <th>M</th>
+              <th>R</th>
+              <th>W</th>
+              <th>Eco</th>
+              <th className="text-right">Ext</th>
+            </tr>
+          </thead>
           <tbody>
             {s.bowlers.map((b) => (
               <tr key={b.name} className="border-t border-border text-center">
                 <td className="py-2.5 text-left font-semibold">{b.name}</td>
-                <td>{formatOvers(b.balls, bpo)}</td><td>{mdn[b.name] ?? 0}</td><td>{b.runs}</td><td className="score-num">{b.wickets}</td>
-                <td>{economy(b.runs, b.balls, bpo).toFixed(1)}</td><td className="text-right">{b.wides + b.noBalls}</td>
+                <td>{formatOvers(b.balls, bpo)}</td>
+                <td>{mdn[b.name] ?? 0}</td>
+                <td>{b.runs}</td>
+                <td className="score-num">{b.wickets}</td>
+                <td>{economy(b.runs, b.balls, bpo).toFixed(1)}</td>
+                <td className="text-right">{b.wides + b.noBalls}</td>
               </tr>
             ))}
           </tbody>
@@ -214,10 +435,14 @@ function Scorecard({ match, d, inn1, inn2 }: { match: MatchRow; d: Derived; inn1
       </div>
       {fow.length > 0 && (
         <section>
-          <h3 className="mb-2 text-lg font-bold text-primary">Fall of wickets</h3>
+          <h3 className="mb-3 text-base font-semibold">Fall of wickets</h3>
           {fow.map((f) => (
             <div key={f.n} className="flex justify-between border-t border-border py-2 text-sm">
-              <span className="w-8 text-muted-foreground">{f.n}</span><span className="flex-1">{f.player}</span><span className="score-num">{f.score} ({f.over})</span>
+              <span className="w-8 text-muted-foreground">{f.n}</span>
+              <span className="flex-1">{f.player}</span>
+              <span className="score-num">
+                {f.score} ({f.over})
+              </span>
             </div>
           ))}
         </section>
@@ -226,7 +451,19 @@ function Scorecard({ match, d, inn1, inn2 }: { match: MatchRow; d: Derived; inn1
   );
 }
 
-function Balls({ d, inn1, inn2, n1, n2 }: { d: Derived; inn1: Delivery[]; inn2: Delivery[]; n1: string; n2: string }) {
+export function Balls({
+  d,
+  inn1,
+  inn2,
+  n1,
+  n2,
+}: {
+  d: Derived;
+  inn1: Delivery[];
+  inn2: Delivery[];
+  n1: string;
+  n2: string;
+}) {
   const [which, setWhich] = useState<"1" | "2">(d.innings === 2 ? "2" : "1");
   const ds = which === "1" ? inn1 : inn2;
   const bpo = d.cfg.ballsPerOver;
@@ -234,24 +471,56 @@ function Balls({ d, inn1, inn2, n1, n2 }: { d: Derived; inn1: Delivery[]; inn2: 
   const st = which === "1" ? d.first : d.second;
   return (
     <div className="space-y-4">
-      <div className="mx-auto max-w-sm"><Segmented value={which} onChange={setWhich} options={[{ id: "1", label: `1st · ${n1}` }, { id: "2", label: `2nd · ${n2}` }]} /></div>
-      {groups.length === 0 && <p className="py-6 text-center text-muted-foreground">No balls yet.</p>}
+      <div className="mx-auto max-w-sm">
+        <Segmented
+          value={which}
+          onChange={setWhich}
+          options={[
+            { id: "1", label: `1st · ${n1}` },
+            { id: "2", label: `2nd · ${n2}` },
+          ]}
+        />
+      </div>
+      {groups.length === 0 && (
+        <p className="py-6 text-center text-muted-foreground">No balls yet.</p>
+      )}
       {groups.map((g) => {
-        const done = g.balls.filter((b) => b.d.extra_type !== "wide" && b.d.extra_type !== "noball").length >= bpo;
+        const done =
+          g.balls.filter((b) => b.d.extra_type !== "wide" && b.d.extra_type !== "noball").length >=
+          bpo;
         return (
           <div key={g.over} className="space-y-1">
             {done && (
               <div className="rounded-2xl border border-border bg-muted/60 p-4 text-sm">
-                <div className="flex flex-wrap gap-1.5">{g.balls.map((b) => <BallChip key={b.d.id} d={b.d} />)}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.balls.map((b) => (
+                    <BallChip key={b.d.id} d={b.d} />
+                  ))}
+                </div>
                 <div className="mt-3 grid grid-cols-2 gap-x-4 border-t border-border pt-3">
-                  <div className="space-y-1">{g.batters.slice(-2).map((n) => {
-                    const bl = st.batters.find((x) => x.name === n);
-                    return <div key={n} className="flex justify-between"><span>{n}</span><span className="score-num">{bl?.runs ?? 0}({bl?.balls ?? 0})</span></div>;
-                  })}</div>
-                  <div><div>{g.bowler}</div></div>
+                  <div className="space-y-1">
+                    {g.batters.slice(-2).map((n) => {
+                      const bl = st.batters.find((x) => x.name === n);
+                      return (
+                        <div key={n} className="flex justify-between">
+                          <span>{n}</span>
+                          <span className="score-num">
+                            {bl?.runs ?? 0}({bl?.balls ?? 0})
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div>
+                    <div>{g.bowler}</div>
+                  </div>
                 </div>
                 <div className="mt-3 flex justify-between border-t border-border pt-3 font-semibold text-primary">
-                  <span>Over {g.over}</span><span>Runs {g.runs}</span><span>Score {g.scoreAfter}-{g.wicketsAfter}</span>
+                  <span>Over {g.over}</span>
+                  <span>Runs {g.runs}</span>
+                  <span>
+                    Score {g.scoreAfter}-{g.wicketsAfter}
+                  </span>
                 </div>
               </div>
             )}
@@ -260,12 +529,24 @@ function Balls({ d, inn1, inn2, n1, n2 }: { d: Derived; inn1: Delivery[]; inn2: 
               return (
                 <div key={b.id} className="flex items-start gap-4 py-2.5">
                   <span className="score-num w-10 pt-2 text-sm">{label}</span>
-                  <span className={cn("inline-flex h-10 min-w-10 items-center justify-center rounded-full border-2 px-1 text-sm font-bold",
-                    w ? "border-wicket bg-wicket text-accent-foreground" : b.runs_bat === 6 ? "border-six text-six" : b.runs_bat === 4 ? "border-four text-four" : "border-primary/30 text-primary")}>
+                  <span
+                    className={cn(
+                      "inline-flex h-10 min-w-10 items-center justify-center rounded-full border-2 px-1 text-sm font-bold",
+                      w
+                        ? "border-wicket bg-wicket text-accent-foreground"
+                        : b.runs_bat === 6
+                          ? "border-six text-six"
+                          : b.runs_bat === 4
+                            ? "border-four text-four"
+                            : "border-primary/30 text-primary",
+                    )}
+                  >
                     {ballLabel(b)}
                   </span>
                   <div className="min-w-0">
-                    <div className="font-medium">{b.bowler} to {b.striker}</div>
+                    <div className="font-medium">
+                      {b.bowler} to {b.striker}
+                    </div>
                     <div className="text-sm text-muted-foreground">{describeBall(b)}</div>
                   </div>
                 </div>
@@ -278,11 +559,26 @@ function Balls({ d, inn1, inn2, n1, n2 }: { d: Derived; inn1: Delivery[]; inn2: 
   );
 }
 
-function Info({ match, tour, look }: { match: MatchRow; tour: { name: string; club?: string | null; ball_type?: string | null; season?: string | null } | null; look: Look }) {
+export function Info({
+  match,
+  tour,
+  look,
+}: {
+  match: MatchRow;
+  tour: {
+    name: string;
+    club?: string | null;
+    ball_type?: string | null;
+    season?: string | null;
+  } | null;
+  look: Look;
+}) {
   const rows: [string, string | null | undefined][] = [
     ["Tournament", tour?.name],
     ["Club", tour?.club],
-    ["Match title", match.name],
+    ["Match title", matchStageTitle(match.rules) ?? match.name],
+    ["Match ID", match.id],
+    ["Time", match.scheduled_time?.slice(0, 5)],
     ["Format", `T${match.overs}`],
     ["Ball type", tour?.ball_type],
     ["Season", tour?.season ?? (match.match_date ? match.match_date.slice(0, 4) : null)],
@@ -290,7 +586,16 @@ function Info({ match, tour, look }: { match: MatchRow; tour: { name: string; cl
     ["Overs", String(match.overs)],
     ["Balls per over", String(match.balls_per_over)],
     ["Venue", match.venue],
-    ["Date", match.match_date ? new Date(match.match_date).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null],
+    [
+      "Date",
+      match.match_date
+        ? new Date(match.match_date).toLocaleDateString(undefined, {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : null,
+    ],
     ["Toss won by", match.toss_winner ? teamName(match, match.toss_winner as "A" | "B") : "—"],
     ["Decided to", match.toss_decision ? (match.toss_decision === "bat" ? "Bat" : "Bowl") : "—"],
   ];
@@ -298,17 +603,35 @@ function Info({ match, tour, look }: { match: MatchRow; tour: { name: string; cl
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 border-b border-border pb-6 text-center">
         {(["A", "B"] as const).map((s) => (
-          <div key={s} className="flex flex-col items-center gap-3"><TeamBadge {...look(s)} size={80} /><span className="font-bold uppercase">{look(s).name}</span></div>
+          <div key={s} className="flex flex-col items-center gap-3">
+            <TeamBadge {...look(s)} size={80} />
+            <span className="font-bold uppercase">{look(s).name}</span>
+          </div>
         ))}
       </div>
-      <dl className="grid grid-cols-[9rem_1fr] gap-y-4 text-sm">
-        {rows.filter(([, v]) => v).map(([k, v]) => (<><dt key={`${k}-k`} className="font-semibold">{k}</dt><dd key={`${k}-v`} className="text-muted-foreground">{v}</dd></>))}
+      <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-x-4 gap-y-4 rounded-2xl border border-border p-4 text-sm sm:p-5">
+        {rows
+          .filter(([, v]) => v)
+          .map(([k, v]) => (
+            <>
+              <dt key={`${k}-k`} className="font-semibold">
+                {k}
+              </dt>
+              <dd key={`${k}-v`} className="break-words text-muted-foreground">
+                {v}
+              </dd>
+            </>
+          ))}
       </dl>
       <div className="grid gap-4 sm:grid-cols-2">
         {(["A", "B"] as const).map((s) => (
-          <div key={s} className="rounded-lg border border-border bg-card p-4">
+          <div key={s} className="rounded-2xl border border-border bg-card p-4 sm:p-5">
             <h3 className="mb-2 font-bold">{look(s).name} squad</h3>
-            <ol className="list-decimal pl-5 text-sm text-muted-foreground">{(s === "A" ? match.team_a_players : match.team_b_players).map((p) => <li key={p}>{p}</li>)}</ol>
+            <ol className="list-decimal pl-5 text-sm text-muted-foreground">
+              {(s === "A" ? match.team_a_players : match.team_b_players).map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ol>
           </div>
         ))}
       </div>

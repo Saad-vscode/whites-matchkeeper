@@ -32,6 +32,23 @@ const d = (p: Partial<Delivery>): Delivery => ({
 });
 
 describe("cricket engine", () => {
+  it("bonus runs add to extras without consuming a ball or changing strike", () => {
+    const s = computeInnings([d({extra_type:"penalty",extras:5})],cfg(),null);
+    expect(s.runs).toBe(5);
+    expect(s.extras.penalty).toBe(5);
+    expect(s.legalBalls).toBe(0);
+    expect(s.batters[0]!.balls).toBe(0);
+    expect(s.bowlers[0]!.runs).toBe(0);
+    expect(s.next.striker).toBe("A");
+  });
+  it("retired hurt records no ball or wicket and permits a returning batter", () => {
+    const retired=d({extra_type:"penalty",extras:0,wicket:{kind:"retired_hurt",playerOut:"A"}});
+    const s=computeInnings([retired],cfg(),null);
+    expect(s.wickets).toBe(0);expect(s.legalBalls).toBe(0);expect(s.next.striker).toBeNull();
+    const returned=computeInnings([retired,d({runs_bat:4})],cfg(),null);
+    expect(returned.batters[0]!.out).toBeNull();expect(returned.batters[0]!.runs).toBe(4);expect(returned.legalBalls).toBe(1);
+    expect(computeInnings([],cfg(),null).wickets).toBe(0);
+  });
   it("uses configured balls per over (5-ball overs)", () => {
     const balls = Array.from({ length: 5 }, () => d({}));
     const s = computeInnings(balls, cfg({ ballsPerOver: 5 }), null);

@@ -85,13 +85,17 @@ export function useLiveMatch(matchId: string) {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const alive = useRef(true);
+  const generation = useRef(0);
+  const request = useRef(0);
 
   const refetch = useCallback(async () => {
+    const epoch = generation.current;
+    const ticket = ++request.current;
     const [m, d] = await Promise.all([
       supabase.from("matches").select("*").eq("id", matchId).maybeSingle(),
       supabase.from("deliveries").select("*").eq("match_id", matchId).order("innings").order("seq"),
     ]);
-    if (!alive.current) return;
+    if (!alive.current || epoch !== generation.current || ticket !== request.current) return;
     if (m.error || !m.data) {
       setError(m.error?.message ?? "Match not found");
       return;
@@ -105,14 +109,26 @@ export function useLiveMatch(matchId: string) {
 
   useEffect(() => {
     alive.current = true;
+    generation.current++;
+    setMatch(null);
+    setDeliveries([]);
+    setError(null);
+    setConn("connecting");
+    setLastUpdated(null);
+    let subscribed = true;
+    let connectionVersion = 0;
     refetch();
     const channel = supabase
       .channel(`match-${matchId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "matches", filter: `id=eq.${matchId}` }, (p) => {
+        if (!subscribed) return;
+        request.current++;
         if (p.eventType === "UPDATE") setMatch(p.new as MatchRow);
         setLastUpdated(new Date());
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "deliveries", filter: `match_id=eq.${matchId}` }, (p) => {
+        if (!subscribed) return;
+        request.current++;
         setDeliveries((prev) => {
           if (p.eventType === "INSERT") {
             const n = p.new as unknown as Delivery;
@@ -131,16 +147,30 @@ export function useLiveMatch(matchId: string) {
         setLastUpdated(new Date());
       })
       .subscribe((status) => {
+        if (!subscribed) return;
+        const connection = ++connectionVersion;
         if (status === "SUBSCRIBED") {
-          setConn("live");
-          refetch(); // catch up on anything missed while reconnecting
+          // Establish the reconnect snapshot before declaring the stream live.
+          // Consumers must not mistake missed historical balls for new events.
+          setConn("connecting");
+          void refetch().then(() => { if (subscribed && connection === connectionVersion) setConn("live"); });
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setConn("offline");
       });
     const off = () => setConn("offline");
+    const refresh = () => { void refetch(); };
+    const visible = () => { if (document.visibilityState === "visible") refresh(); };
+    const poll = window.setInterval(refresh, 5000);
     window.addEventListener("offline", off);
+    window.addEventListener("online", refresh);
+    document.addEventListener("visibilitychange", visible);
     return () => {
+      subscribed = false;
       alive.current = false;
+      generation.current++;
+      window.clearInterval(poll);
       window.removeEventListener("offline", off);
+      window.removeEventListener("online", refresh);
+      document.removeEventListener("visibilitychange", visible);
       supabase.removeChannel(channel);
     };
   }, [matchId, refetch]);

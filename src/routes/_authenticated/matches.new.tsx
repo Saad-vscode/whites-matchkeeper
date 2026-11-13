@@ -32,7 +32,10 @@ const PRESETS = [
 ];
 
 function parsePlayers(text: string, n: number, team: string) {
-  const names = text.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+  const names = text
+    .split(/[\n,]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
   const out = Array.from(new Set(names)).slice(0, n);
   for (let i = out.length; i < n; i++) out.push(`${team} ${i + 1}`);
   return out;
@@ -62,8 +65,14 @@ function NewMatch() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!f.teamA.trim() || !f.teamB.trim()) { toast.error("Enter both team names."); return; }
-    if (f.teamA.trim().toLowerCase() === f.teamB.trim().toLowerCase()) { toast.error("Teams must be different."); return; }
+    if (!f.teamA.trim() || !f.teamB.trim()) {
+      toast.error("Enter both team names.");
+      return;
+    }
+    if (f.teamA.trim().toLowerCase() === f.teamB.trim().toLowerCase()) {
+      toast.error("Teams must be different.");
+      return;
+    }
     setBusy(true);
     const { data: u } = await supabase.auth.getUser();
     const { data, error } = await supabase
@@ -91,38 +100,76 @@ function NewMatch() {
       .single();
     if (error || !data) {
       setBusy(false);
-      { toast.error(error?.message ?? "Could not create match"); return; }
+      {
+        toast.error(error?.message ?? "Could not create match");
+        return;
+      }
     }
     if (f.scorerEmail.trim()) {
-      const { error: e2 } = await supabase.rpc("assign_scorer", { _match: data.id, _email: f.scorerEmail.trim() });
+      const { error: e2 } = await supabase.rpc("assign_scorer", {
+        _match: data.id,
+        _email: f.scorerEmail.trim(),
+      });
       if (e2) toast.error(`Match created, but scorer not added: ${e2.message}`);
     }
     navigate({ to: "/score/$matchId", params: { matchId: data.id } });
   };
 
-  const num = (k: "overs" | "bpo" | "players" | "wideRuns" | "noBallRuns", min: number, max: number) => (
-    <NumField min={min} max={max} value={f[k]} onChange={(v) => set(k, v)} />
-  );
+  const num = (
+    k: "overs" | "bpo" | "players" | "wideRuns" | "noBallRuns",
+    min: number,
+    max: number,
+  ) => <NumField min={min} max={max} value={f[k]} onChange={(v) => set(k, v)} />;
 
   return (
-    <div className="min-h-screen">
+    <div className="tournament-page front-page min-h-screen">
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-4xl font-extrabold text-primary">New quick match</h1>
+      <main className="mx-auto max-w-3xl px-5 py-10 sm:px-8">
+        <p className="front-eyebrow">Make it match day</p>
+        <h1 className="mt-2 text-4xl font-extrabold tracking-tight">Create a match</h1>
+        <p className="mt-3 text-muted-foreground">
+          Set your teams, choose the format, and get ready for the toss.
+        </p>
         <form onSubmit={submit} className="mt-6 space-y-8">
           <Section title="Teams">
-            <Field label="Match name"><Input value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
+            <Field label="Match name">
+              <Input value={f.name} onChange={(e) => set("name", e.target.value)} />
+            </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-3">
-                <Field label="Team A"><Input required value={f.teamA} onChange={(e) => set("teamA", e.target.value)} placeholder="e.g. Colombo Lions" /></Field>
+                <Field label="Team A">
+                  <Input
+                    required
+                    value={f.teamA}
+                    onChange={(e) => set("teamA", e.target.value)}
+                    placeholder="e.g. Colombo Lions"
+                  />
+                </Field>
                 <Field label="Players (optional)">
-                  <Textarea rows={4} value={f.playersA} onChange={(e) => set("playersA", e.target.value)} placeholder="One per line or comma separated" />
+                  <Textarea
+                    rows={4}
+                    value={f.playersA}
+                    onChange={(e) => set("playersA", e.target.value)}
+                    placeholder="One per line or comma separated"
+                  />
                 </Field>
               </div>
               <div className="space-y-3">
-                <Field label="Team B"><Input required value={f.teamB} onChange={(e) => set("teamB", e.target.value)} placeholder="e.g. Kandy Tuskers" /></Field>
+                <Field label="Team B">
+                  <Input
+                    required
+                    value={f.teamB}
+                    onChange={(e) => set("teamB", e.target.value)}
+                    placeholder="e.g. Kandy Tuskers"
+                  />
+                </Field>
                 <Field label="Players (optional)">
-                  <Textarea rows={4} value={f.playersB} onChange={(e) => set("playersB", e.target.value)} placeholder="Missing names are filled automatically" />
+                  <Textarea
+                    rows={4}
+                    value={f.playersB}
+                    onChange={(e) => set("playersB", e.target.value)}
+                    placeholder="Missing names are filled automatically"
+                  />
                 </Field>
               </div>
             </div>
@@ -131,7 +178,15 @@ function NewMatch() {
           <Section title="Format">
             <div className="flex flex-wrap gap-2">
               {PRESETS.map((p) => (
-                <Button key={p.label} type="button" variant="outline" size="sm" onClick={() => setF((s) => ({ ...s, overs: p.overs, bpo: p.bpo, players: p.players }))}>
+                <Button
+                  key={p.label}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setF((s) => ({ ...s, overs: p.overs, bpo: p.bpo, players: p.players }))
+                  }
+                >
                   {p.label}
                 </Button>
               ))}
@@ -142,8 +197,12 @@ function NewMatch() {
               <Field label="Players / side">{num("players", 2, 15)}</Field>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Venue"><Input value={f.venue} onChange={(e) => set("venue", e.target.value)} /></Field>
-              <Field label="Date"><Input type="date" value={f.date} onChange={(e) => set("date", e.target.value)} /></Field>
+              <Field label="Venue">
+                <Input value={f.venue} onChange={(e) => set("venue", e.target.value)} />
+              </Field>
+              <Field label="Date">
+                <Input type="date" value={f.date} onChange={(e) => set("date", e.target.value)} />
+              </Field>
             </div>
           </Section>
 
@@ -152,13 +211,21 @@ function NewMatch() {
               <Field label="Wide runs">{num("wideRuns", 0, 5)}</Field>
               <Field label="No-ball runs">{num("noBallRuns", 0, 5)}</Field>
               <Field label="Max overs / bowler">
-                <Input type="number" min={1} placeholder="No limit" value={f.maxOvers} onChange={(e) => set("maxOvers", e.target.value)} />
+                <Input
+                  type="number"
+                  min={1}
+                  placeholder="No limit"
+                  value={f.maxOvers}
+                  onChange={(e) => set("maxOvers", e.target.value)}
+                />
               </Field>
             </div>
             <label className="flex items-center justify-between gap-4 rounded-md border border-border bg-card p-3">
               <span>
                 <span className="block font-medium">Last man bats</span>
-                <span className="text-sm text-muted-foreground">The final batter can continue alone.</span>
+                <span className="text-sm text-muted-foreground">
+                  The final batter can continue alone.
+                </span>
               </span>
               <Switch checked={f.lastManBats} onCheckedChange={(v) => set("lastManBats", v)} />
             </label>
@@ -166,7 +233,12 @@ function NewMatch() {
 
           <Section title="Scorer">
             <Field label="Extra scorer's email (optional)">
-              <Input type="email" value={f.scorerEmail} onChange={(e) => set("scorerEmail", e.target.value)} placeholder="They need a Crease account" />
+              <Input
+                type="email"
+                value={f.scorerEmail}
+                onChange={(e) => set("scorerEmail", e.target.value)}
+                placeholder="They need a Crease account"
+              />
             </Field>
             <p className="text-sm text-muted-foreground">You can always score your own matches.</p>
           </Section>
@@ -182,8 +254,8 @@ function NewMatch() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="space-y-4">
-      <h2 className="border-b border-border pb-1 text-xl font-bold">{title}</h2>
+    <section className="space-y-5 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-7">
+      <h2 className="border-b border-border pb-4 text-xl font-bold">{title}</h2>
       {children}
     </section>
   );

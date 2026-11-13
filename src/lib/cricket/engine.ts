@@ -16,6 +16,8 @@ export interface Wicket {
   kind: DismissalKind;
   playerOut: string;
   fielder?: string | null;
+  runOutType?: "direct" | "assisted";
+  assistedBy?: string | null;
 }
 
 export interface Delivery {
@@ -66,7 +68,7 @@ export function normalizeRules(raw: unknown): Rules {
 }
 
 export const isLegal = (d: Pick<Delivery, "extra_type">) =>
-  d.extra_type !== "wide" && d.extra_type !== "noball";
+  d.extra_type !== "wide" && d.extra_type !== "noball" && d.extra_type !== "penalty";
 
 /** Total runs added to team score by a delivery. */
 export const deliveryRuns = (d: Delivery) => d.runs_bat + d.extras;
@@ -167,7 +169,9 @@ export function computeInnings(deliveries: Delivery[], cfg: MatchConfig, target:
     if (ballsInOver === 0) s.currentOver = [];
     const legal = isLegal(d);
     const striker = bat(d.striker);
-    bat(d.non_striker);
+    const nonStriker = bat(d.non_striker);
+    if (striker.out?.kind === "retired_hurt") striker.out = null;
+    if (nonStriker.out?.kind === "retired_hurt") nonStriker.out = null;
     const bowler = bowl(d.bowler);
 
     s.runs += deliveryRuns(d);
@@ -178,7 +182,7 @@ export function computeInnings(deliveries: Delivery[], cfg: MatchConfig, target:
     striker.runs += d.runs_bat;
     if (d.runs_bat === 4) striker.fours++;
     if (d.runs_bat === 6) striker.sixes++;
-    if (d.extra_type !== "wide") striker.balls++;
+    if (d.extra_type !== "wide" && d.extra_type !== "penalty") striker.balls++;
 
     bowler.runs += d.runs_bat;
     if (d.extra_type === "wide") {
@@ -285,6 +289,7 @@ export const strikeRate = (runs: number, balls: number) => (balls ? (runs / ball
 export const economy = (runs: number, balls: number, bpo: number) => (balls ? (runs / balls) * bpo : 0);
 
 export function ballLabel(d: Delivery): string {
+  if (d.wicket?.kind === "retired_hurt") return "RH";
   const w = countsAsWicket(d.wicket) ? "W" : "";
   switch (d.extra_type) {
     case "wide":

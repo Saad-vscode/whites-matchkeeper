@@ -11,9 +11,12 @@ export default defineConfig({
   vite: {
     plugins: [VitePWA({
       strategies: "generateSW", filename: "sw.js", injectRegister: null,
+      // Nitro deploys this directory, not Vite's default dist directory.
+      outDir: ".output/public",
       registerType: "autoUpdate", devOptions: { enabled: false },
       manifest: false,
       workbox: {
+        globDirectory: ".output/public",
         // HTML is runtime NetworkFirst, not precached.
         globPatterns: ["**/*.{js,css,png,jpg,svg,woff2}"],
         navigateFallback: null,

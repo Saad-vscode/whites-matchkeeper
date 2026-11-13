@@ -1,0 +1,769 @@
+.tv-broadcast {
+  position: relative;
+  isolation: isolate;
+}
+.tv-highlight {
+  contain: layout paint;
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  pointer-events: none;
+  color: var(--primary, #f3c667);
+  background: var(--background, #041f18);
+  font-family: var(--tv-font, sans-serif);
+  display: grid;
+  grid-template-rows: 10% 70% 20%;
+  animation: tv-highlight-envelope var(--highlight-duration) both;
+}
+.tv-highlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 45%,
+    color-mix(in srgb, currentColor 12%, transparent),
+    transparent 65%
+  );
+}
+.tv-highlight-grid {
+  position: absolute;
+  inset: -40%;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.1;
+  box-shadow:
+    0 0 0 6vw #ffffff08,
+    0 0 0 12vw #ffffff05;
+  transform: rotate(-18deg) scaleY(0.75);
+}
+.tv-highlight-sweep {
+  position: absolute;
+  inset: -50%;
+  background: linear-gradient(110deg, transparent 40%, #fff6 49%, transparent 55%);
+  opacity: 0.14;
+  animation: tv-light-sweep 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.tv-highlight-brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 4%;
+  border-bottom: 1px solid #ffffff20;
+  font-size: clamp(12px, 2.8vh, 32px);
+}
+.tv-highlight-brand span {
+  font-size: 0.55em;
+  letter-spacing: 0.3em;
+  color: var(--muted-foreground, #adc3b9);
+}
+.tv-highlight-stage {
+  position: relative;
+  min-height: 0;
+  width: 100%;
+}
+.tv-highlight-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.tv-highlight-caption {
+  position: absolute;
+  inset: auto 4% 1%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2vh;
+  animation: tv-highlight-title 0.55s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.tv-highlight-caption span {
+  font-size: clamp(10px, 2.1vh, 24px);
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+}
+.tv-highlight-caption strong {
+  font-size: clamp(36px, 10vh, 128px);
+  line-height: 0.95;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-indent: 0.12em;
+  color: #fff6df;
+}
+.tv-highlight-player {
+  position: relative;
+  align-self: center;
+  text-align: center;
+  padding: 0 6%;
+  min-width: 0;
+  animation: tv-highlight-title 0.5s 0.85s both;
+}
+.tv-highlight-player span {
+  display: block;
+  font-size: clamp(10px, 1.7vh, 20px);
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: var(--muted-foreground, #adc3b9);
+}
+.tv-highlight-player strong {
+  display: block;
+  font-size: clamp(20px, 4.5vh, 60px);
+  line-height: 1.4;
+  color: #fff6df;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tv-highlight-player i {
+  display: block;
+  width: 5vw;
+  height: 2px;
+  margin: 0.7vh auto 0;
+  background: currentColor;
+}
+.tv-highlight-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: currentColor;
+  transform-origin: left;
+  animation: tv-highlight-progress var(--highlight-duration) linear both;
+  opacity: 0.55;
+}
+.tv-boundary-number,
+.tv-boundary-outline {
+  font-family: var(--tv-font, sans-serif);
+  font-weight: 900;
+  font-size: 370px;
+  letter-spacing: -0.05em;
+}
+.tv-boundary-number {
+  animation: tv-number-land 0.65s 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: 500px 278px;
+  filter: drop-shadow(0 12px 20px #0006);
+}
+.tv-boundary-outline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.2;
+  animation: tv-number-echo 1.4s 0.3s both;
+  transform-origin: 500px 278px;
+}
+.tv-boundary-orbit {
+  transform-origin: 500px 278px;
+  animation: tv-orbit 2.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.tv-boundary-trail {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: tv-ball-trail 1.2s 0.15s both;
+  opacity: 0.6;
+}
+.tv-boundary-ball {
+  animation: tv-four-ball 1s 0.15s cubic-bezier(0.3, 0.6, 0.7, 1) both;
+  filter: drop-shadow(0 0 12px #fff1b8);
+}
+.tv-highlight--six .tv-boundary-ball {
+  animation-name: tv-six-ball;
+}
+.tv-highlight--six .tv-boundary-number {
+  fill: url(#metal-six);
+}
+.tv-highlight--wicket .tv-highlight-caption {
+  animation-delay: 1s;
+}
+.tv-highlight--wicket .tv-highlight-caption strong {
+  font-size: clamp(30px, min(11vh, 13vw), 140px);
+}
+.tv-highlight--wicket .tv-highlight-player {
+  animation-delay: 1.2s;
+}
+.tv-stumps {
+  animation: tv-stumps-enter 0.35s 0.1s both;
+}
+.tv-stump {
+  transform-box: view-box;
+}
+.tv-stump-0 {
+  animation: tv-stump-left 1.1s 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+.tv-stump-1 {
+  animation: tv-stump-middle 1.1s 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+.tv-stump-2 {
+  animation: tv-stump-right 1.1s 0.75s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+.tv-bail {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.tv-bail-left {
+  animation: tv-bail-left 1.1s 0.75s ease-out forwards;
+}
+.tv-bail-right {
+  animation: tv-bail-right 1.1s 0.75s ease-out forwards;
+}
+.tv-wicket-ball {
+  transform-origin: 500px 330px;
+  animation: tv-wicket-ball 1.25s 0.15s cubic-bezier(0.35, 0.1, 0.75, 0.8) both;
+}
+.tv-impact-ring {
+  transform-origin: 500px 330px;
+  animation: tv-impact-ring 0.65s 0.75s both;
+}
+.tv-impact-particles path {
+  animation: tv-sparks 0.85s 0.75s ease-out both;
+}
+@keyframes tv-highlight-envelope {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  86% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes tv-light-sweep {
+  from {
+    transform: translateX(-70%);
+  }
+  to {
+    transform: translateX(70%);
+  }
+}
+@keyframes tv-highlight-title {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes tv-highlight-progress {
+  to {
+    transform: scaleX(0);
+  }
+}
+@keyframes tv-number-land {
+  from {
+    opacity: 0;
+    transform: scale(1.7) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes tv-number-echo {
+  from {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.55);
+  }
+}
+@keyframes tv-orbit {
+  from {
+    opacity: 0;
+    transform: rotate(-130deg) scale(0.7);
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.8;
+    transform: rotate(75deg) scale(1);
+  }
+}
+@keyframes tv-ball-trail {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  75% {
+    stroke-dashoffset: 0;
+    opacity: 0.7;
+  }
+  100% {
+    stroke-dashoffset: -1;
+    opacity: 0;
+  }
+}
+@keyframes tv-four-ball {
+  0% {
+    transform: translate(60px, 410px);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  55% {
+    transform: translate(480px, 390px);
+  }
+  100% {
+    transform: translate(950px, 330px);
+    opacity: 0;
+  }
+}
+@keyframes tv-six-ball {
+  0% {
+    transform: translate(80px, 460px) scale(0.7);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate(405px, 95px) scale(1.2);
+  }
+  100% {
+    transform: translate(840px, 110px) scale(0.5);
+    opacity: 0;
+  }
+}
+@keyframes tv-stumps-enter {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes tv-wicket-ball {
+  0% {
+    opacity: 0;
+    transform: translate(-600px, 100px) scale(1.8);
+  }
+  10% {
+    opacity: 1;
+  }
+  48% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(190px, 145px) scale(0.55);
+    opacity: 0;
+  }
+}
+@keyframes tv-stump-left {
+  to {
+    transform: translate(-75px, 20px) rotate(-25deg);
+    opacity: 0.45;
+  }
+}
+@keyframes tv-stump-middle {
+  to {
+    transform: translate(65px, -15px) rotate(38deg);
+    opacity: 0.3;
+  }
+}
+@keyframes tv-stump-right {
+  to {
+    transform: translate(120px, 25px) rotate(62deg);
+    opacity: 0.35;
+  }
+}
+@keyframes tv-bail-left {
+  to {
+    transform: translate(-160px, -130px) rotate(-240deg);
+    opacity: 0;
+  }
+}
+@keyframes tv-bail-right {
+  to {
+    transform: translate(180px, -100px) rotate(280deg);
+    opacity: 0;
+  }
+}
+@keyframes tv-impact-ring {
+  from {
+    opacity: 0.9;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 0;
+    transform: scale(6);
+  }
+}
+@keyframes tv-sparks {
+  from {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  5% {
+    opacity: 0.9;
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tv-highlight,
+  .tv-highlight * {
+    animation: none !important;
+  }
+  .tv-highlight-sweep,
+  .tv-boundary-ball,
+  .tv-boundary-trail,
+  .tv-boundary-outline,
+  .tv-impact-particles,
+  .tv-impact-ring,
+  .tv-wicket-ball {
+    display: none;
+  }
+  .tv-highlight {
+    opacity: 1;
+  }
+}
+/* Event graphics use bounded SVG elements, transforms and opacity, without per-frame JS. */
+.tv-highlight--wide {
+  color: #efbd62;
+}
+.tv-highlight--no_ball {
+  color: #c3a3ed;
+}
+.tv-highlight--maiden,
+.tv-highlight--winning_four {
+  color: #91cfe7;
+}
+.tv-highlight--hat_chance,
+.tv-highlight--run_out {
+  color: #ec9d7d;
+}
+.tv-highlight:not(.tv-highlight--four):not(.tv-highlight--six):not(.tv-highlight--wicket)
+  .tv-highlight-caption
+  strong {
+  font-size: clamp(25px, min(8vh, 5.8vw), 110px);
+  letter-spacing: 0.055em;
+}
+.tv-highlight--winning_six .tv-boundary-ball {
+  animation-name: tv-six-ball;
+}
+.moment-duck {
+  animation: moment-arrive 0.5s 0.2s both;
+}
+.moment-duck-golden {
+  animation-delay: 0.5s;
+}
+.moment-duck-head {
+  transform-origin: 505px 300px;
+  animation: moment-sad-nod 1.4s 0.55s both;
+}
+.moment-tear {
+  animation: moment-tear 1s 0.95s both;
+}
+.moment-golden-halo {
+  transform-origin: 500px 270px;
+  animation: moment-halo 1.8s 0.3s both;
+}
+.moment-first-ball {
+  animation: moment-first-batter 0.6s both;
+}
+.moment-first-ball-hit {
+  animation: moment-impact 0.5s 0.45s both;
+}
+.moment-umpire {
+  animation: moment-arrive 0.4s both;
+}
+.moment-arm-left {
+  animation: moment-wide-left 0.7s 0.25s both;
+}
+.moment-arm-right {
+  animation: moment-wide-right 0.7s 0.25s both;
+}
+.tv-highlight--no_ball .moment-arm-left {
+  animation: none;
+  transform: rotate(-75deg);
+}
+.moment-warning-ball {
+  animation: moment-warning-ball 1.4s 0.3s both;
+}
+.moment-side-glow {
+  transform-origin: 500px 260px;
+  animation: moment-side-glow 1s 0.4s both;
+}
+.moment-runner {
+  transform-origin: 480px 320px;
+  animation: moment-dive 1.1s 0.2s both;
+}
+.moment-runout-ball {
+  animation: moment-runout-ball 0.8s 0.25s both;
+}
+.moment-runout-bails {
+  transform-origin: 770px 280px;
+  animation: moment-bails 0.7s 0.85s both;
+}
+.moment-short-mark {
+  animation: moment-arrive 0.4s 1s both;
+}
+.moment-medal {
+  animation: moment-arrive 0.5s calc(0.2s + var(--beat)) both;
+}
+.moment-orbit-ball {
+  animation: moment-orbit 2.4s linear both;
+}
+.moment-dot {
+  animation: moment-arrive 0.3s calc(0.15s + var(--beat)) both;
+}
+.moment-maiden-ring {
+  stroke-dashoffset: 1068;
+  transform-origin: 500px 260px;
+  transform: rotate(-90deg);
+  animation: moment-close-ring 1.8s 0.1s both;
+}
+.moment-raised-bat {
+  transform-origin: 305px 355px;
+  animation: moment-bat-salute 1.1s 0.1s both;
+}
+.moment-fifty {
+  animation: moment-arrive 0.6s 0.3s both;
+}
+.moment-burst path {
+  animation: tv-sparks 1s 0.75s both;
+}
+.moment-confetti rect {
+  animation: moment-confetti 1.9s calc(0.3s + var(--beat)) both;
+}
+@keyframes moment-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes moment-sad-nod {
+  0% {
+    transform: rotate(-5deg);
+  }
+  45%,
+  100% {
+    transform: rotate(12deg);
+  }
+}
+@keyframes moment-tear {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(65px);
+  }
+}
+@keyframes moment-halo {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  40% {
+    opacity: 0.22;
+  }
+  to {
+    opacity: 0.12;
+    transform: scale(1.12);
+  }
+}
+@keyframes moment-first-batter {
+  from {
+    opacity: 0;
+    transform: translateX(70px);
+  }
+  to {
+    opacity: 0.6;
+    transform: translateX(0);
+  }
+}
+@keyframes moment-impact {
+  from {
+    opacity: 1;
+    transform: translateX(-80px);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+}
+@keyframes moment-wide-left {
+  from {
+    transform: rotate(-75deg);
+  }
+  to {
+    transform: rotate(0);
+  }
+}
+@keyframes moment-wide-right {
+  from {
+    transform: rotate(75deg);
+  }
+  to {
+    transform: rotate(0);
+  }
+}
+@keyframes moment-warning-ball {
+  from {
+    opacity: 0;
+    transform: translate(750px, 330px) rotate(-180deg);
+  }
+  to {
+    opacity: 1;
+    transform: translate(750px, 290px) rotate(30deg);
+  }
+}
+@keyframes moment-side-glow {
+  from {
+    opacity: 0;
+    transform: scaleX(0.2);
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.3;
+    transform: scaleX(1.2);
+  }
+}
+@keyframes moment-dive {
+  from {
+    opacity: 0;
+    transform: translate(-200px, -40px) rotate(-12deg);
+  }
+  70%,
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+}
+@keyframes moment-runout-ball {
+  from {
+    opacity: 0;
+    transform: translate(940px, 110px);
+  }
+  15% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+    transform: translate(772px, 310px);
+  }
+  to {
+    opacity: 0;
+    transform: translate(760px, 360px);
+  }
+}
+@keyframes moment-bails {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(35px, -90px) rotate(40deg);
+    opacity: 0;
+  }
+}
+@keyframes moment-orbit {
+  0% {
+    transform: translate(500px, 90px);
+  }
+  25% {
+    transform: translate(750px, 260px);
+  }
+  50% {
+    transform: translate(500px, 410px);
+  }
+  75% {
+    transform: translate(250px, 260px);
+  }
+  100% {
+    transform: translate(500px, 90px);
+  }
+}
+@keyframes moment-close-ring {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes moment-bat-salute {
+  from {
+    opacity: 0;
+    transform: rotate(-65deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(8deg);
+  }
+}
+@keyframes moment-confetti {
+  from {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15% {
+    opacity: 0.8;
+  }
+  to {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(90deg);
+  }
+}
+.tv-highlight[data-motion="reduced"],
+.tv-highlight[data-motion="reduced"] * {
+  animation: none !important;
+}
+.tv-highlight[data-motion="reduced"] .tv-highlight-sweep,
+.tv-highlight[data-motion="reduced"] .tv-boundary-ball,
+.tv-highlight[data-motion="reduced"] .tv-boundary-trail,
+.tv-highlight[data-motion="reduced"] .tv-boundary-outline,
+.tv-highlight[data-motion="reduced"] .tv-impact-particles,
+.tv-highlight[data-motion="reduced"] .tv-impact-ring,
+.tv-highlight[data-motion="reduced"] .tv-wicket-ball,
+.tv-highlight[data-motion="reduced"] .moment-confetti,
+.tv-highlight[data-motion="reduced"] .moment-burst,
+.tv-highlight[data-motion="reduced"] .moment-tear,
+.tv-highlight[data-motion="reduced"] .moment-orbit-ball,
+.tv-highlight[data-motion="reduced"] .moment-warning-ball,
+.tv-highlight[data-motion="reduced"] .moment-runout-ball {
+  display: none;
+}
+.tv-highlight[data-motion="reduced"] .moment-maiden-ring {
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .moment-confetti,
+  .moment-burst,
+  .moment-tear,
+  .moment-orbit-ball,
+  .moment-warning-ball,
+  .moment-runout-ball {
+    display: none;
+  }
+  .moment-maiden-ring {
+    stroke-dashoffset: 0;
+  }
+}
+.moment-confetti rect { transform-box:fill-box; transform-origin:center; }

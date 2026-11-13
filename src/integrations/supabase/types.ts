@@ -98,6 +98,7 @@ export type Database = {
       }
       matches: {
         Row: {
+          scheduled_time: string | null
           balls_per_over: number
           created_at: string
           created_by: string
@@ -124,6 +125,7 @@ export type Database = {
           venue: string | null
         }
         Insert: {
+          scheduled_time?: string | null
           balls_per_over?: number
           created_at?: string
           created_by?: string
@@ -150,6 +152,7 @@ export type Database = {
           venue?: string | null
         }
         Update: {
+          scheduled_time?: string | null
           balls_per_over?: number
           created_at?: string
           created_by?: string
@@ -243,8 +246,17 @@ export type Database = {
           },
         ]
       }
+      tournament_groups: {
+        Row: { id: string; tournament_id: string; name: string; team_ids: string[]; created_at: string }
+        Insert: { id?: string; tournament_id: string; name: string; team_ids?: string[]; created_at?: string }
+        Update: { id?: string; tournament_id?: string; name?: string; team_ids?: string[]; created_at?: string }
+        Relationships: []
+      }
       tournament_teams: {
         Row: {
+          logo_url: string | null
+          captain: string | null
+          vice_captain?: string | null
           color: string
           created_at: string
           id: string
@@ -254,6 +266,9 @@ export type Database = {
           tournament_id: string
         }
         Insert: {
+          logo_url?: string | null
+          captain?: string | null
+          vice_captain?: string | null
           color?: string
           created_at?: string
           id?: string
@@ -263,6 +278,9 @@ export type Database = {
           tournament_id: string
         }
         Update: {
+          logo_url?: string | null
+          captain?: string | null
+          vice_captain?: string | null
           color?: string
           created_at?: string
           id?: string
@@ -283,6 +301,13 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          location: string | null
+          description: string | null
+          start_date: string | null
+          end_date: string | null
+          competition_format: string
+          ranking_rule: string
+          points_no_result: number
           accent_color: string
           balls_per_over: number
           created_at: string
@@ -300,6 +325,13 @@ export type Database = {
           short_name: string | null
         }
         Insert: {
+          location?: string | null
+          description?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          competition_format?: string
+          ranking_rule?: string
+          points_no_result?: number
           accent_color?: string
           balls_per_over?: number
           created_at?: string
@@ -317,6 +349,13 @@ export type Database = {
           short_name?: string | null
         }
         Update: {
+          location?: string | null
+          description?: string | null
+          start_date?: string | null
+          end_date?: string | null
+          competition_format?: string
+          ranking_rule?: string
+          points_no_result?: number
           accent_color?: string
           balls_per_over?: number
           created_at?: string
@@ -358,6 +397,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      read_tournament_presentation: { Args: { _t: string }; Returns: Json };
+      set_tournament_presentation: { Args: { _t: string; _playing: boolean; _seconds: number }; Returns: undefined };
+      playoff_context: { Args: { _t: string }; Returns: Json }
+      save_playoff_draw: { Args: { _t: string; _draw: Json; _approve: boolean; _token: string }; Returns: undefined }
+      sync_playoff_fixtures: { Args: { _t: string; _token: string; _winners: Json }; Returns: number }
+      decide_playoff_tie: { Args: { _t: string; _node: string; _team: string; _reason: string; _token: string }; Returns: undefined }
+      read_match_award: {
+        Args: { _match: string }
+        Returns: Json
+      }
+      publish_match_award: {
+        Args: { _match: string; _expected: number }
+        Returns: Json
+      }
+      fixture_generator_context: { Args: { _t: string; _group: string }; Returns: Json }
+      create_generated_fixtures: { Args: { _t: string; _group: string; _mode: string; _target: number; _token: string; _pairs: Json; _request: string }; Returns: string[] }
+      match_format_supported: { Args: Record<PropertyKey, never>; Returns: boolean }
+      edit_scheduled_match: {
+        Args: { _match: string; _expected: number; _date: string | null; _time: string | null; _venue: string | null }
+        Returns: undefined
+      }
+      delete_scheduled_match: {
+        Args: { _match: string }
+        Returns: undefined
+      }
+      save_tournament_group: { Args: { _t: string; _id: string | null; _name: string; _teams: string[] }; Returns: string }
       apply_score_operation: {
         Args: {
           _delivery: Json

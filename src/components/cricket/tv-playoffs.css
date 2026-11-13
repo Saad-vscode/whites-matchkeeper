@@ -1,0 +1,277 @@
+.tv-draw,
+.tv-champions {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 0;
+  padding: 2vh 3vw;
+  overflow: hidden;
+  color: var(--foreground);
+}
+.tv-draw {
+  display: flex;
+  flex-direction: column;
+  gap: 2vh;
+}
+.tv-draw > .tv-watermark,
+.tv-champions > .tv-watermark {
+  z-index: -1;
+  pointer-events: none;
+}
+.tv-draw-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2vw;
+}
+.tv-draw-eyebrow {
+  font-size: clamp(12px, 1.8vh, 22px);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--primary);
+}
+.tv-draw-heading h1 {
+  font-size: clamp(24px, 5.6vh, 70px);
+  line-height: 1.1;
+  font-weight: 800;
+  margin-top: 0.7vh;
+}
+.tv-draw-round {
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+  color: var(--primary);
+  font-size: clamp(16px, 2.8vh, 38px);
+}
+.tv-draw-fixtures {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2vh 2vw;
+  align-content: center;
+  animation: tv-draw-enter 0.45s ease-out both;
+}
+.tv-draw-fixtures[data-count="1"] {
+  grid-template-columns: minmax(0, 1fr);
+  width: 78%;
+  align-self: center;
+}
+.tv-draw-tree{flex:1;min-height:0;display:grid;gap:2.5vw;align-items:stretch;animation:tv-draw-enter .45s ease-out both}
+.tv-draw-tree-column{position:relative;display:flex;flex-direction:column;justify-content:center;gap:3vh}
+.tv-draw-tree-column:not(:last-child)::after{content:"";position:absolute;left:100%;top:50%;width:2.5vw;border-top:2px solid var(--primary);opacity:.45}
+.tv-draw-tree-column[data-pair="true"]:not(:last-child)::after{top:25%;height:50%;width:1.25vw;border-top:2px solid var(--primary);border-bottom:2px solid var(--primary);border-right:2px solid var(--primary)}
+.tv-draw-tree-column:not(:first-child)::before{content:"";position:absolute;right:100%;top:50%;width:1.25vw;border-top:2px solid var(--primary);opacity:.45}
+.tv-draw-tree .tv-draw-team>strong{font-size:clamp(16px,2.8vh,40px)}
+.tv-draw-tree .tv-draw-card>header{font-size:clamp(12px,2vh,28px)}
+.tv-draw-tree .tv-draw-logo{height:4vh;width:4vh}
+.tv-draw-tree .tv-draw-card>footer{font-size:1.7vh}
+.tv-draw-card {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 1.5vh;
+  background: var(--card);
+  overflow: hidden;
+  box-shadow: 0 1vh 3vh #0002;
+}
+.tv-draw-card[data-next="true"] {
+  border-color: var(--primary);
+}
+.tv-draw-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1vw;
+  padding: 1.3vh 1.5vw;
+  background: var(--muted);
+  font-size: clamp(13px, 2.3vh, 30px);
+}
+.tv-draw-card > header > span {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+}
+.tv-draw-team {
+  display: flex;
+  align-items: center;
+  gap: 1.2vw;
+  padding: 1.4vh 1.5vw;
+  min-width: 0;
+}
+.tv-draw-team > strong {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(18px, 3.5vh, 48px);
+  line-height: 1.15;
+}
+.tv-draw-team[data-winner="true"] {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+.tv-draw-logo {
+  width: 5vh;
+  height: 5vh;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 1vh;
+  background: var(--muted);
+  font-weight: 800;
+  font-size: 3vh;
+  overflow: hidden;
+}
+.tv-draw-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #fff;
+}
+.tv-draw-score {
+  font-size: 3.5vh;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.tv-draw-score small {
+  display: block;
+  font-size: 1.7vh;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.tv-draw-card > footer {
+  border-top: 1px solid var(--border);
+  padding: 1vh 1.5vw;
+  display: flex;
+  align-items: center;
+  gap: 0.7vw;
+  font-size: clamp(12px, 1.8vh, 24px);
+  color: var(--muted-foreground);
+}
+.tv-draw-path {
+  display: flex;
+  justify-content: center;
+  gap: 2vw;
+  color: var(--muted-foreground);
+  font-size: clamp(12px, 2vh, 28px);
+}
+.tv-draw-path > span {
+  display: flex;
+  align-items: center;
+  gap: 2vw;
+}
+.tv-draw-path [data-active="true"] {
+  color: var(--primary);
+  font-weight: 800;
+}
+.tv-draw-note {
+  display: flex;
+  justify-content: space-between;
+  gap: 2vw;
+  border-top: 1px solid var(--border);
+  padding-top: 1vh;
+  color: var(--muted-foreground);
+  font-size: clamp(12px, 2vh, 28px);
+}
+.tv-champions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1.5vh;
+  animation: tv-draw-enter 0.7s ease-out both;
+}
+.tv-champions-trophy {
+  width: 10vh;
+  height: 10vh;
+  color: var(--primary);
+}
+.tv-champion-logo {
+  width: 12vh;
+  height: 12vh;
+  object-fit: contain;
+  background: white;
+  border-radius: 2vh;
+  padding: 1vh;
+}
+.tv-champions h1 {
+  font-size: clamp(32px, 8vh, 110px);
+  font-weight: 800;
+  line-height: 1.1;
+  max-width: 90%;
+  overflow-wrap: anywhere;
+}
+.tv-champions-title {
+  color: var(--primary);
+  font-size: 5vh;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+.tv-champions-event,
+.tv-runner {
+  font-size: 2.8vh;
+  color: var(--muted-foreground);
+}
+.tv-runner strong {
+  color: var(--foreground);
+  margin-left: 1vw;
+}
+.tv-crown-rays {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--primary) 12%, transparent),
+    transparent 65%
+  );
+  pointer-events: none;
+}
+@keyframes tv-draw-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tv-draw-tree,
+  .tv-draw-fixtures,
+  .tv-champions {
+    animation: none;
+  }
+}
+@media (max-aspect-ratio: 4/5) {
+  .tv-draw-fixtures {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tv-draw-fixtures[data-count="1"] {
+    width: 100%;
+  }
+  .tv-draw-team > strong {
+    font-size: 2.4vh;
+  }
+  .tv-draw-logo {
+    height: 3vh;
+    width: 3vh;
+  }
+  .tv-draw-team {
+    padding: 0.7vh 1.5vw;
+  }
+  .tv-draw-card > header {
+    padding: 0.6vh 1.5vw;
+  }
+  .tv-draw-path {
+    flex-wrap: wrap;
+  }
+  .tv-draw-card > footer {
+    padding: 0.5vh 1.5vw;
+  }
+}

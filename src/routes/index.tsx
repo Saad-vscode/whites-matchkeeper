@@ -1,16 +1,24 @@
+import { MatchShelf, splitMatches } from "@/components/cricket/match-shelf";
+import type { MatchRow } from "@/lib/cricket/match";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { SiteHeader, StatusPill } from "@/components/cricket/bits";
+import { SiteHeader } from "@/components/cricket/bits";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Crease — Live Cricket Scoring" },
-      { name: "description", content: "Score cricket ball by ball and share live scoreboards with everyone watching." },
+      {
+        name: "description",
+        content: "Score cricket ball by ball and share live scoreboards with everyone watching.",
+      },
       { property: "og:title", content: "Crease — Live Cricket Scoring" },
-      { property: "og:description", content: "Score cricket ball by ball and share live scoreboards with everyone watching." },
+      {
+        property: "og:description",
+        content: "Score cricket ball by ball and share live scoreboards with everyone watching.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -19,80 +27,86 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { data: matches } = useQuery({
+  const {
+    data = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["public-matches"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("matches")
-        .select("id,name,team_a,team_b,status,venue,match_date,result,overs,balls_per_over")
-        .order("updated_at", { ascending: false })
-        .limit(30);
-      return data ?? [];
+      const rows: MatchRow[] = [];
+      for (let start = 0; ; start += 500) {
+        const result = await supabase
+          .from("matches")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .order("id")
+          .range(start, start + 499);
+        if (result.error) throw result.error;
+        rows.push(...result.data);
+        if (result.data.length < 500) break;
+      }
+      return rows;
     },
+    refetchInterval: 10000,
   });
-  const live = matches?.filter((m) => m.status === "live" || m.status === "innings_break" || m.status === "paused") ?? [];
-  const rest = matches?.filter((m) => !live.includes(m)) ?? [];
-
+  const groups = splitMatches(data);
   return (
-    <div className="min-h-screen">
+    <div className="tournament-page front-page min-h-screen">
       <SiteHeader />
-      <section className="border-b border-border pinstripe">
-        <div className="mx-auto max-w-5xl px-4 py-14 sm:py-20">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent">Every ball, as it happens</p>
-          <h1 className="mt-3 max-w-2xl text-5xl font-extrabold leading-[1.02] text-primary sm:text-6xl">
-            Score the match. Everyone else watches it live.
-          </h1>
-          <p className="mt-4 max-w-xl text-muted-foreground">
-            Any overs, any team size, any balls per over. Big buttons for the scorer, a live scorecard for the crowd, and a full-screen board for the TV.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
-              <Link to="/matches/new">Start a quick match</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link to="/dashboard">My matches</Link>
-            </Button>
+      <main className="mx-auto max-w-6xl space-y-12 px-5 py-8 sm:px-8 sm:py-12">
+        <section className="front-hero">
+          <div className="relative z-10 max-w-2xl">
+            <p className="front-eyebrow">Your game. Every moment.</p>
+            <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight sm:text-6xl">
+              Bring your match
+              <br />
+              <span className="text-primary">to everyone.</span>
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground">
+              From the first toss to the final ball. Score your cricket, follow your teams, and
+              share every moment live.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Button asChild size="lg">
+                <Link to="/matches/new">Start a match</Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link to="/tournaments/new">Create tournament</Link>
+              </Button>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-semibold text-muted-foreground">
+              <span>Live scorecards</span>
+              <span>Your match rules</span>
+              <span>Big-screen scoreboards</span>
+            </div>
           </div>
-        </div>
-      </section>
-
-      <main className="mx-auto max-w-5xl space-y-10 px-4 py-10">
-        <MatchList title="Live now" items={live} empty="No matches are live right now." />
-        <MatchList title="Recent & upcoming" items={rest} empty="No matches yet — start the first one." />
+          <div className="front-pitch" aria-hidden="true">
+            <div />
+            <span>EVERY BALL COUNTS</span>
+          </div>
+        </section>
+        {isLoading && <p role="status">Loading matches…</p>}
+        {error && (
+          <p role="alert" className="rounded-xl bg-muted p-4">
+            Matches are temporarily unavailable. Please try again shortly.
+          </p>
+        )}
+        {!isLoading && !error && (
+          <>
+            <MatchShelf title="Live Now" matches={groups.live} />
+            <MatchShelf title="Upcoming Matches" matches={groups.upcoming} />
+            <MatchShelf title="Recent Matches" matches={groups.recent} />
+          </>
+        )}
+        <footer className="flex flex-wrap justify-between gap-3 border-t border-border py-6 text-sm text-muted-foreground">
+          <span className="font-bold text-primary">Crease</span>
+          <span>A place for every cricket match.</span>
+          <Link to="/dashboard" className="font-semibold text-primary">
+            Go to My Matches →
+          </Link>
+        </footer>
       </main>
     </div>
-  );
-}
-
-type Item = { id: string; name: string; team_a: string; team_b: string; status: string; venue: string | null; result: string | null };
-
-function MatchList({ title, items, empty }: { title: string; items: Item[]; empty: string }) {
-  return (
-    <section>
-      <h2 className="mb-4 text-2xl font-bold">{title}</h2>
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{empty}</p>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {items.map((m) => (
-            <Link
-              key={m.id}
-              to="/match/$matchId"
-              params={{ matchId: m.id }}
-              className="group rounded-lg border border-border bg-card p-4 transition hover:border-primary"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">{m.name}</span>
-                <StatusPill status={m.status} />
-              </div>
-              <div className="mt-2 font-display text-xl font-bold">
-                {m.team_a} <span className="text-muted-foreground">v</span> {m.team_b}
-              </div>
-              <div className="mt-1 text-sm text-muted-foreground">{m.result ?? m.venue ?? "\u00a0"}</div>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
   );
 }

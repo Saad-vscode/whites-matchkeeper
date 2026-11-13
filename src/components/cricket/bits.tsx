@@ -7,6 +7,8 @@ import { ballLabel, countsAsWicket, type Delivery } from "@/lib/cricket/engine";
 import type { ConnState } from "@/lib/cricket/match";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Settings2, LayoutGrid, UserRound, LogOut, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
@@ -33,10 +35,12 @@ export function BallChip({ d, size = "md" }: { d: Delivery; size?: "md" | "lg" |
         : d.runs_bat === 4
           ? "bg-four text-accent-foreground border-four"
           : "bg-card text-foreground border-border";
-  const dims = size === "xl" ? "h-20 min-w-20 text-3xl" : size === "lg" ? "h-12 min-w-12 text-lg" : "h-8 min-w-8 text-xs";
+  const dims = size === "xl" ? "h-20 w-20" : size === "lg" ? "h-12 w-12" : "h-8 w-8";
   return (
-    <span className={cn("inline-flex items-center justify-center rounded-full border-2 px-1.5 score-num", dims, tone)}>
-      {label}
+    <span aria-label={label} title={label} className={cn("inline-flex shrink-0 items-center justify-center rounded-full border-2 score-num", dims, tone)}>
+      <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
+        <text x="50" y="50" textAnchor="middle" dominantBaseline="central" fill="currentColor" fontSize="44" textLength={label.length > 2 ? 76 : undefined} lengthAdjust="spacingAndGlyphs">{label}</text>
+      </svg>
     </span>
   );
 }
@@ -65,20 +69,17 @@ export function SiteHeader() {
   };
   return (
     <header className="border-b border-border bg-card/70 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-5 sm:px-8">
         <Link to="/" className="flex items-baseline gap-2">
-          <span className="font-display text-2xl font-extrabold text-primary">Crease</span>
+          <span className="text-2xl font-extrabold tracking-tight text-primary">Crease</span>
           <span className="hidden text-xs uppercase tracking-[0.2em] text-muted-foreground sm:inline">cricket scoring</span>
         </Link>
-        <nav className="flex items-center gap-2">
+        <nav aria-label="Main navigation" className="flex items-center gap-1 rounded-xl border border-border bg-background p-1 sm:gap-2">
+          <Link to="/settings" activeProps={{className:"bg-primary/10 text-primary"}} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted"><Settings2 size={17}/><span className="hidden sm:inline">Settings</span><span className="sr-only sm:hidden">Settings</span></Link>
           {user ? (
             <>
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/dashboard">My matches</Link>
-              </Button>
-              <Button variant="outline" size="sm" onClick={signOut}>
-                Sign out
-              </Button>
+              <Link to="/dashboard" activeProps={{className:"bg-primary/10 text-primary"}} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted"><LayoutGrid size={17}/><span className="hidden sm:inline">My matches</span><span className="sr-only sm:hidden">My matches</span></Link>
+              <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="sm" aria-label="Account menu" className="gap-1 rounded-lg"><span className="grid h-7 w-7 place-items-center rounded-full bg-primary/10 text-primary"><UserRound size={16}/></span><ChevronDown size={13}/></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-60"><DropdownMenuLabel className="truncate">{user.email ?? "Your account"}</DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem onClick={()=>void signOut()}><LogOut size={16} className="mr-2"/>Sign out</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
             </>
           ) : (
             <Button asChild size="sm">

@@ -109,7 +109,7 @@ export function playerTotals(ds: (Delivery & { match_id: string })[], teamOf: (m
   }
   let bestBowl: { name: string; team: string; w: number; r: number } | null = null;
   for (const [k, v] of bowl) {
-    const [, , team, name] = k.split("|");
+    const [, , team = "", name = ""] = k.split("|");
     if (!bestBowl || v.w > bestBowl.w || (v.w === bestBowl.w && v.r < bestBowl.r)) bestBowl = { name, team, ...v };
   }
   return { players: [...map.values()], bestBowl };

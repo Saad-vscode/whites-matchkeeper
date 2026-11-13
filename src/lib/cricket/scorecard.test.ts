@@ -19,7 +19,7 @@ describe("scorecard", () => {
     const ds = Array.from({ length: 7 }, () => b({ runs_bat: 1 }));
     const g = overGroups(ds, 6);
     expect(g.length).toBe(2);
-    expect(g[0].runs).toBe(6);
-    expect(g[1].balls[0].label).toBe("1.1");
+    expect(g[0]!.runs).toBe(6);
+    expect(g[1]!.balls[0]!.label).toBe("1.1");
   });
 });

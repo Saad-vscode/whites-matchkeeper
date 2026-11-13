@@ -6,6 +6,7 @@ export interface PointsRules {
   win: number;
   tie: number;
   loss: number;
+  noResult?: number;
 }
 
 export interface Outcome {
@@ -13,6 +14,7 @@ export interface Outcome {
   /** runs scored and legal balls faced by each side (all-out counts as the full quota) */
   A: { runs: number; balls: number };
   B: { runs: number; balls: number };
+  ballsPerOver?: number;
 }
 
 /** Result of a finished match, or null while it is still in progress / not started. */
@@ -29,6 +31,7 @@ export function matchOutcome(m: MatchRow, deliveries: Delivery[]): Outcome | nul
   out[s1] = { runs: d.first.runs, balls: balls(d.first) };
   out[s2] = { runs: d.second.runs, balls: balls(d.second) };
   out.winner = d.second.runs > d.first.runs ? s2 : d.first.runs > d.second.runs ? s1 : "tie";
+  out.ballsPerOver = m.balls_per_over;
   return out;
 }
 
@@ -43,6 +46,7 @@ export interface StandingRow {
   won: number;
   lost: number;
   tied: number;
+  noResult: number;
   points: number;
   runsFor: number;
   ballsFaced: number;
@@ -53,22 +57,52 @@ export interface StandingRow {
 
 export function standings(
   teams: TeamRef[],
-  results: { teamA: string | null; teamB: string | null; outcome: Outcome | null }[],
+  results: {
+    teamA: string | null;
+    teamB: string | null;
+    outcome: Outcome | null;
+    noResult?: boolean;
+  }[],
   pts: PointsRules,
   ballsPerOver: number,
+  ranking = "points_nrr_wins",
 ): StandingRow[] {
   const rows = new Map<string, StandingRow>(
     teams.map((t) => [
       t.id,
-      { teamId: t.id, name: t.name, played: 0, won: 0, lost: 0, tied: 0, points: 0, runsFor: 0, ballsFaced: 0, runsAgainst: 0, ballsBowled: 0, nrr: 0 },
+      {
+        teamId: t.id,
+        name: t.name,
+        played: 0,
+        won: 0,
+        lost: 0,
+        tied: 0,
+        noResult: 0,
+        points: 0,
+        runsFor: 0,
+        ballsFaced: 0,
+        runsAgainst: 0,
+        ballsBowled: 0,
+        nrr: 0,
+      },
     ]),
   );
+  const overs = new Map<string, { faced: number; bowled: number }>();
   for (const r of results) {
-    if (!r.outcome || !r.teamA || !r.teamB) continue;
+    if ((!r.outcome && !r.noResult) || !r.teamA || !r.teamB) continue;
     const a = rows.get(r.teamA);
     const b = rows.get(r.teamB);
     if (!a || !b) continue;
+    if (r.noResult) {
+      for (const row of [a, b]) {
+        row.played++;
+        row.noResult++;
+        row.points += pts.noResult ?? pts.tie;
+      }
+      continue;
+    }
     const o = r.outcome;
+    if (!o) continue;
     for (const [row, me, opp, side] of [
       [a, o.A, o.B, "A"],
       [b, o.B, o.A, "B"],
@@ -78,6 +112,10 @@ export function standings(
       row.ballsFaced += me.balls;
       row.runsAgainst += opp.runs;
       row.ballsBowled += opp.balls;
+      const rate = overs.get(row.teamId) ?? { faced: 0, bowled: 0 };
+      rate.faced += me.balls / (o.ballsPerOver ?? ballsPerOver);
+      rate.bowled += opp.balls / (o.ballsPerOver ?? ballsPerOver);
+      overs.set(row.teamId, rate);
       if (o.winner === "tie") {
         row.tied++;
         row.points += pts.tie;
@@ -92,9 +130,17 @@ export function standings(
   }
   const list = [...rows.values()];
   for (const r of list) {
-    const forRate = r.ballsFaced ? (r.runsFor / r.ballsFaced) * ballsPerOver : 0;
-    const agRate = r.ballsBowled ? (r.runsAgainst / r.ballsBowled) * ballsPerOver : 0;
+    const rate = overs.get(r.teamId);
+    const forRate = rate?.faced ? r.runsFor / rate.faced : 0;
+    const agRate = rate?.bowled ? r.runsAgainst / rate.bowled : 0;
     r.nrr = forRate - agRate;
   }
-  return list.sort((x, y) => y.points - x.points || y.nrr - x.nrr || y.won - x.won || x.name.localeCompare(y.name));
+  return list.sort(
+    (x, y) =>
+      y.points - x.points ||
+      (ranking === "points_wins_nrr"
+        ? y.won - x.won || y.nrr - x.nrr
+        : y.nrr - x.nrr || y.won - x.won) ||
+      x.name.localeCompare(y.name),
+  );
 }

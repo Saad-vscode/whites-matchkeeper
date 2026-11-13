@@ -1,0 +1,57 @@
+vi.mock("@/lib/cricket/tournament-branding",()=>({useTournamentBranding:()=>({data:null})}));
+import {act,cleanup,fireEvent,render,screen} from "@testing-library/react";
+import {afterEach,beforeEach,expect,it,vi} from "vitest";
+import type {ComponentType} from "react";
+import {matchFixture,deliveryFixture} from "@/test/tournament-fixtures";
+import {derive} from "@/lib/cricket/match";
+const state=vi.hoisted(()=>({match:null as ReturnType<typeof matchFixture>|null,award:null as object|null,deliveries:[] as ReturnType<typeof deliveryFixture>[],preparing:null as string|null}));
+vi.mock("@tanstack/react-router",()=>({createFileRoute:()=> (config:unknown)=>({options:config,useParams:()=>({matchId:"match"})}),Link:({children}:{children:React.ReactNode})=><a>{children}</a>}));
+vi.mock("@tanstack/react-query",()=>({useQuery:()=>({data:state.award})}));
+vi.mock("@/lib/cricket/match",async()=>({...await vi.importActual<object>("@/lib/cricket/match"),useLiveMatch:()=>({match:state.match,derived:state.match?derive(state.match,state.deliveries):null,deliveries:state.deliveries,conn:"live",refetch:vi.fn()})}));
+vi.mock("@/lib/cricket/tv-feed",()=>({useTvFeed:()=>({nextId:"match",preparing:state.preparing})}));
+vi.mock("@/lib/cricket/use-playoffs",()=>({usePlayoffs:()=>({data:{playoff:{approved:true}}})}));
+vi.mock("./tv-playoffs",()=>({TvPlayoffs:()=> <main aria-label="Playoff draw">Draw</main>}));
+vi.mock("./tv-viewport",()=>({TvViewport:({children}:{children:React.ReactNode})=><>{children}</>}));
+vi.mock("./tv-highlight",()=>({TvHighlights:()=>null}));
+vi.mock("./match-award",()=>({MatchAward:()=> <div>Award panel</div>}));
+vi.mock("./tv-presentation",()=>({useTvLogos:()=>({}),useTvTournamentLogo:()=>null,showTvIntroduction:()=>false,tvMatchType:()=>"Semi Final",TvWatermark:()=>null}));
+vi.mock("./bits",()=>({ConnBadge:()=>null,StatusPill:()=>null,BallChip:()=>null}));
+vi.mock("@/lib/cricket/tournament-presentation",()=>({useTournamentPresentation:()=>({data:null})}));
+import {Route} from "@/routes/display.$matchId";
+const Display=Route.options.component as ComponentType;
+beforeEach(()=>{vi.useFakeTimers();state.match=matchFixture();state.award=null;state.preparing=null;state.deliveries=[];vi.stubGlobal("localStorage",{getItem:()=>null,setItem:vi.fn()})});
+afterEach(()=>{cleanup();vi.useRealTimers();vi.unstubAllGlobals()});
+it("holds results for ten seconds and gives a late award its own result interval",()=>{
+  const view=render(<Display/>);
+  expect(screen.queryByRole("main",{name:"Playoff draw"})).toBeNull();
+  act(()=>vi.advanceTimersByTime(10000));expect(screen.getByRole("main",{name:"Playoff draw"})).toBeInTheDocument();
+  state.award={score_revision:0};view.rerender(<Display/>);
+  expect(screen.queryByRole("main",{name:"Playoff draw"})).toBeNull();
+  act(()=>vi.advanceTimersByTime(10000));expect(screen.getByRole("main",{name:"Playoff draw"})).toBeInTheDocument();
+});
+it("times a manual five-second draw during live play and returns to the scoreboard",()=>{
+  state.match=matchFixture({status:"live"});render(<Display/>);
+  fireEvent.click(screen.getByRole("button",{name:"Display options"}));
+  fireEvent.click(screen.getByRole("button",{name:"5 seconds"}));
+  expect(screen.getByRole("main",{name:"Playoff draw"})).toBeInTheDocument();
+  act(()=>vi.advanceTimersByTime(5000));expect(screen.queryByRole("main",{name:"Playoff draw"})).toBeNull();
+});
+it("dismisses a held draw and gives a new toss priority",()=>{
+  state.match=matchFixture({status:"scheduled",toss_winner:null});const view=render(<Display/>);
+  fireEvent.click(screen.getByRole("button",{name:"Display options"}));fireEvent.click(screen.getByRole("button",{name:"Until dismissed"}));
+  act(()=>vi.advanceTimersByTime(30000));expect(screen.getByRole("main",{name:"Playoff draw"})).toBeInTheDocument();
+  state.match={...state.match!,toss_winner:"A"};view.rerender(<Display/>);
+  expect(screen.queryByRole("main",{name:"Playoff draw"})).toBeNull();
+});
+it("shows victory once and replays it only when a revision-valid award arrives",()=>{
+ state.match=matchFixture({overs:1,balls_per_over:1});
+ state.deliveries=[deliveryFixture({runs_bat:1}),deliveryFixture({id:"2",innings:2,runs_bat:2})];
+ const v=render(<Display/>);
+ expect(screen.getByRole("main",{name:"Match celebration"})).toBeInTheDocument();
+ act(()=>vi.advanceTimersByTime(10000));expect(screen.queryByRole("main",{name:"Match celebration"})).toBeNull();
+ state.award={score_revision:state.match.score_revision};v.rerender(<Display/>);
+ expect(screen.getByRole("main",{name:"Match celebration"})).toBeInTheDocument();
+ expect(screen.getByRole("region",{name:"Man of the Match"})).toBeInTheDocument();
+ act(()=>vi.advanceTimersByTime(10000));expect(screen.queryByRole("main",{name:"Match celebration"})).toBeNull();
+ v.rerender(<Display/>);expect(screen.queryByRole("main",{name:"Match celebration"})).toBeNull();
+});
