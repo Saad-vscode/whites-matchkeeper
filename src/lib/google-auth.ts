@@ -1,14 +1,36 @@
+
 import { lovable } from "@/integrations/lovable";
+import { supabase } from "@/integrations/supabase/client";
 
 export async function signInWithGoogle() {
   const redirectTo = new URL("/dashboard", window.location.origin).href;
-  // Managed Google OAuth needs Lovable's hosting broker. Calling the backend
-  // directly bypasses it and fails because managed credentials aren't stored there.
-  if (["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname)) {
+  const hostname = window.location.hostname;
+
+  // Keep Google login disabled in local development.
+  if (["localhost", "127.0.0.1", "[::1]"].includes(hostname)) {
     return {
-      error: new Error("Google sign-in is unavailable in this local preview. Open the hosted app to use Google, or sign in with email here."),
+      error: new Error("Google sign-in is unavailable in local preview."),
       redirected: false,
     };
   }
-  return lovable.auth.signInWithOAuth("google", { redirect_uri: redirectTo });
+
+  // Use Supabase OAuth on Vercel.
+  if (hostname.endsWith(".vercel.app")) {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+      },
+    });
+
+    return {
+      error,
+      redirected: Boolean(data?.url),
+    };
+  }
+
+  // Keep the existing Lovable authentication flow.
+  return lovable.auth.signInWithOAuth("google", {
+    redirect_uri: redirectTo,
+  });
 }
