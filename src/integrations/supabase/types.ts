@@ -301,6 +301,10 @@ export type Database = {
       }
       tournaments: {
         Row: {
+          platform_hidden?: boolean
+          platform_disabled?: boolean
+          platform_archived?: boolean
+          platform_deleted_at?: string | null
           location: string | null
           description: string | null
           start_date: string | null
@@ -397,6 +401,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      platform_other_matches: { Args: { _search?: string; _state?: string; _page?: number }; Returns: Json };
+      platform_other_match_details: { Args: { _match: string }; Returns: Json };
+      platform_manage_other_match: { Args: { _match: string; _action: string; _reason?: string; _confirmation?: string; _owner?: string }; Returns: undefined };
+      platform_settings_read: { Args: Record<string, never>; Returns: Json };
+      public_platform_configuration: { Args: Record<string, never>; Returns: Json };
+      platform_settings_save: { Args: { _values: Json; _features: Json; _revision: string; _reason?: string }; Returns: undefined };
+      platform_bulk_defaults: { Args: { _confirm: string; _revision: string }; Returns: undefined };
+      platform_announcements_read: { Args: { _public?: boolean }; Returns: Json };
+      platform_announcement_save: { Args: { _id: string | null; _value: Json; _delete?: boolean }; Returns: undefined };
+      read_feature_access: { Args: { _match?: string; _t?: string }; Returns: Json }
+      platform_feature_details: { Args: { _target: string }; Returns: Json }
+      platform_save_features: { Args: { _target: string; _values: Json; _reset?: boolean }; Returns: undefined }
+      platform_tournament_directory: { Args: { _search?: string; _status?: string; _visibility?: string; _organizer?: string; _sort?: string; _page?: number }; Returns: Json };
+      platform_tournament_details: { Args: { _t: string }; Returns: Json };
+      platform_transfer_candidates: { Args: { _search?: string }; Returns: Json };
+      platform_manage_tournament: { Args: { _t: string; _action: string; _values?: Json; _reason?: string; _confirmation?: string }; Returns: undefined };
+      account_access: { Args: Record<string, never>; Returns: boolean };
+      platform_user_directory: { Args: { _search: string; _role: string; _status: string; _sort: string; _page: number }; Returns: Json };
+      platform_user_details: { Args: { _target: string }; Returns: Json };
+      platform_manage_user: { Args: { _target: string; _action: string; _name?: string; _avatar?: string; _reason?: string }; Returns: undefined };
+
+      platform_role: { Args: Record<string, never>; Returns: string };
+      platform_overview: { Args: Record<string, never>; Returns: Json };
       read_tournament_presentation: { Args: { _t: string }; Returns: Json };
       set_tournament_presentation: { Args: { _t: string; _playing: boolean; _seconds: number }; Returns: undefined };
       playoff_context: { Args: { _t: string }; Returns: Json }
@@ -407,6 +434,8 @@ export type Database = {
         Args: { _match: string }
         Returns: Json
       }
+      read_live_match: { Args: { _match: string }; Returns: Json }
+      read_live_tournament_matches: { Args: { _tournament: string }; Returns: Json }
       publish_match_award: {
         Args: { _match: string; _expected: number }
         Returns: Json

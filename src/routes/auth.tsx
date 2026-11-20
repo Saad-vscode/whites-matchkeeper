@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SiteHeader } from "@/components/cricket/bits";
+import { globalDefault } from '@/lib/global-settings';
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -32,6 +33,10 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'up' && (!globalDefault('registrations', true) || globalDefault('maintenance', false))) {
+      toast.error('New registrations are temporarily closed. Existing accounts can still sign in.');
+      return;
+    }
     setBusy(true);
     if (mode === "in") {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -147,7 +152,13 @@ function AuthPage() {
           </form>
           <button
             className="mt-4 text-sm text-primary underline-offset-4 hover:underline"
-            onClick={() => setMode(mode === "in" ? "up" : "in")}
+            onClick={() => {
+              if (mode === 'in' && (!globalDefault('registrations', true) || globalDefault('maintenance', false))) {
+                toast.error('New registrations are temporarily closed. Existing accounts can still sign in.');
+                return;
+              }
+              setMode(mode === "in" ? "up" : "in");
+            }}
           >
             {mode === "in" ? "New here? Create an account" : "Already have an account? Sign in"}
           </button>

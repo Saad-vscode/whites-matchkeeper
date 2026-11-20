@@ -1,3 +1,4 @@
+import { PlatformConfiguration } from '@/components/platform-configuration';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -19,9 +20,9 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
+    <div className="tournament-page front-page flex min-h-screen items-center justify-center bg-background px-5 py-10">
+      <div className="w-full max-w-lg rounded-3xl border border-border bg-card p-8 text-center shadow-sm sm:p-12">
+        <a href="/" className="mb-8 block text-2xl font-extrabold text-primary">Crease</a><h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
@@ -47,9 +48,9 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+    <div className="tournament-page front-page flex min-h-screen items-center justify-center bg-background px-5 py-10">
+      <div className="w-full max-w-lg rounded-3xl border border-border bg-card p-8 text-center shadow-sm sm:p-12">
+        <a href="/" className="mb-8 block text-2xl font-extrabold text-primary">Crease</a><h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
@@ -141,7 +142,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AppAppearance />
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <PlatformConfiguration><Outlet /></PlatformConfiguration>
       <Toaster position="top-center" />
     </QueryClientProvider>
   );

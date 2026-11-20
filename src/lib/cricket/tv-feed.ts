@@ -33,15 +33,26 @@ export function useTvFeed(tournamentId: string | null, currentId: string, follow
     let request = 0;
     const refresh = async () => {
       const ticket = ++request;
-      const rows: Fixture[] = [];
-      for (let start = 0; ; start += 500) {
-        const { data, error } = await supabase.from("matches")
-          .select("id,status,created_at,toss_winner").eq("tournament_id", tournamentId)
-          .order("created_at").order("id").range(start, start + 499);
-        if (!alive || ticket !== request || error) return;
-        rows.push(...data);
-        if (data.length < 500) break;
+      const result = await supabase.rpc("read_live_tournament_matches", { _tournament: tournamentId });
+      let rows: Fixture[] = [];
+      if (!result.error && Array.isArray(result.data)) {
+        rows = result.data as unknown as Fixture[];
+      } else if (result.error?.code === "PGRST202") {
+        // Keep older databases functional while the forward-only TV snapshot
+        // migration is being applied; existing RLS still guards this fallback.
+        for (let start = 0; ; start += 500) {
+          const { data, error } = await supabase.from("matches")
+            .select("id,status,created_at,toss_winner").eq("tournament_id", tournamentId)
+            .order("created_at").order("id").range(start, start + 499);
+          if (!alive || ticket !== request || error) return;
+          rows.push(...data);
+          if (data.length < 500) break;
+        }
+      } else {
+        if (result.error?.code === "42501" || result.data === null) setFixtures([]);
+        return;
       }
+      if (!alive || ticket !== request) return;
       setFixtures(rows);
     };
     void refresh();

@@ -1,6 +1,7 @@
+vi.mock("@/lib/feature-access", async (original) => { const module = await original<typeof import("@/lib/feature-access")>(); const access = module.allFeatures(true); return { ...module, useFeatureAccess: () => ({ allows: () => true, access }) }; });
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { matchFixture, teamFixture, tournamentFixture } from "@/test/tournament-fixtures";
+import { deliveryFixture, matchFixture, teamFixture, tournamentFixture } from "@/test/tournament-fixtures";
 // jsdom has no layout observers; Embla uses these to track slide visibility.
 class LayoutObserver {
   observe() {}
@@ -14,6 +15,7 @@ const state = vi.hoisted(() => ({
   scoreIds: [] as string[],
   userId: "owner",
   status: "live",
+  finished: false,
   rpc: vi.fn(),
 }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: state.rpc } }));
@@ -30,8 +32,8 @@ vi.mock("@/lib/cricket/use-tournament", () => ({
       tournament: tournamentFixture(),
       teams: [teamFixture("a", "Lions"), teamFixture("b", "Eagles")],
       groups: [],
-      matches: [matchFixture({ status: state.status })],
-      deliveries: [],
+      matches: [matchFixture({ status: state.status, rules: state.finished ? { tournamentStage: { kind: "other", title: "Final" } } : {} })],
+      deliveries: state.finished ? [deliveryFixture({ runs_bat: 4, wicket: { kind: "bowled", playerOut: "Alex" } }), deliveryFixture({ id: "chase", innings: 2, runs_bat: 6 })] : [],
       schemaPending: false,
     },
   }),
@@ -67,6 +69,7 @@ describe("tournament view permissions", () => {
     state.scoreIds = ["match"];
     state.userId = "owner";
     state.status = "live";
+    state.finished = false;
     state.rpc.mockReset();
     state.rpc.mockResolvedValue({ error: null });
   });
@@ -149,5 +152,19 @@ describe("tournament view permissions", () => {
     render(<TournamentPage tournamentId="tour" management />);
     tab("matches");
     expect(screen.queryByRole("link", { name: "Scoring controls" })).not.toBeInTheDocument();
+  });
+  it.each(["owner", "scorer", "spectator"])("shows completed honours and appropriate TV control for %s on public Home", (role) => {
+    state.finished = true;
+    state.status = "completed";
+    state.owner = role === "owner";
+    state.scoreIds = role === "scorer" ? ["match"] : [];
+    render(<TournamentPage tournamentId="tour" />);
+    expect(screen.getByText("Champions")).toBeInTheDocument();
+    expect(screen.getByText("Runner-up")).toBeInTheDocument();
+    expect(screen.getByText("Player of the Series")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Teams" })).toBeNull();
+    const button = screen.queryByRole("button", { name: "Start tournament honours" });
+    if (role === "spectator") expect(button).toBeNull();
+    else expect(button).toBeInTheDocument();
   });
 });

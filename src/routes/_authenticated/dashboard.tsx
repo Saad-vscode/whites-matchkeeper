@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/cricket/bits";
 import { useEffect, useState } from "react";
 import { loadDraft, replay } from "@/lib/cricket/offline";
 import type { MatchRow } from "@/lib/cricket/match";
+import { maxWickets, normalizeRules } from "@/lib/cricket/engine";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -115,7 +116,13 @@ function Dashboard() {
             >
               <div className="text-lg font-bold">{t.name}</div>
               <div className="text-sm text-muted-foreground">
-                {t.overs} overs · {t.players_per_team} a side
+                {t.overs} overs · {t.players_per_team} a side ·{" "}
+                {maxWickets({
+                  overs: t.overs,
+                  ballsPerOver: t.balls_per_over,
+                  playersPerTeam: t.players_per_team,
+                  rules: normalizeRules(t.rules),
+                })} wickets
               </div>
               <div className="mt-3 flex gap-2">
                 <Button asChild size="sm" variant="outline">

@@ -1,3 +1,4 @@
+import { useFeatureAccess } from "@/lib/feature-access";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,7 +30,7 @@ import { groupRoundFinished, playoffNode } from "@/lib/cricket/playoffs";
 import { usePlayoffs } from "@/lib/cricket/use-playoffs";
 import { standings } from "@/lib/cricket/tournament";
 import { battingSide } from "@/lib/cricket/match";
-import { formatOvers, matchResult } from "@/lib/cricket/engine";
+import { formatOvers, matchResult, maxWickets, normalizeRules } from "@/lib/cricket/engine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -137,10 +138,12 @@ function RecentMatches({
 }
 
 function TournamentHonours({
+  awardsAllowed = true,
   honours,
   teams,
   summary,
 }: {
+  awardsAllowed?: boolean;
   honours: NonNullable<ReturnType<typeof tournamentHonours>>;
   teams: Tables<"tournament_teams">[];
   summary: Summary;
@@ -169,7 +172,7 @@ function TournamentHonours({
             <p className="mt-4 break-words text-lg font-semibold">{side.name}</p>
           </article>
         ))}
-        <article className="flex flex-col items-center rounded-2xl border border-slate-100 bg-slate-50/50 px-4 py-7 text-center">
+        {awardsAllowed && <article className="flex flex-col items-center rounded-2xl border border-slate-100 bg-slate-50/50 px-4 py-7 text-center">
           <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Player of the Series
           </p>
@@ -190,7 +193,7 @@ function TournamentHonours({
           {summary.uncreditedFielding > 0 && (
             <p className="mt-2 text-xs text-amber-700">Provisional: fielding details missing</p>
           )}
-        </article>
+        </article>}
       </div>
     </section>
   );
@@ -579,6 +582,7 @@ export function TournamentPage({
   const { user } = useUser();
   const qc = useQueryClient();
   const query = useTournament(tournamentId);
+  const { allows } = useFeatureAccess({ tournament: tournamentId });
   const [tab, setTab] = useState<Tab>("home");
   const [generatorOpen, setGeneratorOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
@@ -592,7 +596,7 @@ export function TournamentPage({
     .join(",");
   const { data: permissions } = useQuery({
     queryKey: ["tournament-permissions", tournamentId, user?.id, ids],
-    enabled: management && !!user,
+    enabled: !!user,
     queryFn: async () => {
       const [owner, scoring] = await Promise.all([
         supabase.rpc("is_tournament_owner", { _t: tournamentId }),
@@ -607,7 +611,8 @@ export function TournamentPage({
       return { owner: owner.data === true, scoreIds: scoring.filter((id): id is string => !!id) };
     },
   });
-  const canManage = management && !!user && permissions?.owner === true;
+  const restricted = query.data?.tournament?.platform_disabled || query.data?.tournament?.platform_archived || !!query.data?.tournament?.platform_deleted_at;
+  const canManage = !restricted && management && !!user && permissions?.owner === true;
   const showPlayoffs = !!query.data && (groupRoundFinished(query.data) || query.data.matches.some(m=>!!playoffNode(m)) || (query.data.tournament?.competition_format === "knockout" && query.data.teams.length >= 2));
   const playoffs = usePlayoffs(tournamentId, showPlayoffs, !!canManage);
   const summary = useMemo(
@@ -831,6 +836,7 @@ export function TournamentPage({
   return (
     <div className="tournament-page min-h-screen bg-white text-slate-900">
       <div className="mx-auto max-w-5xl border-x border-slate-100">
+        {restricted && <div role="status" className="border-b border-border bg-muted p-4 text-sm text-foreground">This tournament is {query.data?.tournament?.platform_archived ? 'archived' : 'disabled'} and read-only. Scoring and changes are paused by platform administration. Existing results are preserved.</div>}
         <header className="relative flex h-20 items-center justify-center border-b border-slate-100 px-16">
           <Link
             to={management ? "/dashboard" : "/"}
@@ -912,7 +918,13 @@ export function TournamentPage({
                   Tournament ID: {t.id}
                 </p>
                 <p className="mt-3 text-xs font-medium uppercase tracking-wide text-teal-700">
-                  {t.competition_format ?? "league"} · {t.overs} overs · {t.players_per_team} a side
+                  {t.competition_format ?? "league"} · {t.overs} overs · {t.players_per_team} a side ·{" "}
+                  {maxWickets({
+                    overs: t.overs,
+                    ballsPerOver: t.balls_per_over,
+                    playersPerTeam: t.players_per_team,
+                    rules: normalizeRules(t.rules),
+                  })} wickets
                 </p>
               </div>
               <div className="flex gap-5">
@@ -952,9 +964,9 @@ export function TournamentPage({
                 </Button>
               </div>
             )}
-            {honours && (canManage || (management && !!permissions?.scoreIds.length)) && <HonoursControl id={t.id}/>}
+            {honours && !!user && (permissions?.owner || !!permissions?.scoreIds.length) && <HonoursControl id={t.id}/>}
             {honours ? (
-              <TournamentHonours honours={honours} teams={teams} summary={summary} />
+              <TournamentHonours awardsAllowed={allows("awards")} honours={honours} teams={teams} summary={summary} />
             ) : (
               <section className="tournament-section">
                 <div className="mb-5 flex items-center justify-between">
@@ -1138,7 +1150,7 @@ export function TournamentPage({
             )}
           </TabsContent>
           <TabsContent value="matches" className="m-0 p-5 sm:p-8">
-            {canManage && (
+            {canManage && allows("fixtures") && (
               <div className="mb-6 flex flex-wrap items-center gap-3">
                 <Button
                   variant="outline"
@@ -1166,7 +1178,7 @@ export function TournamentPage({
                 )}
               </div>
             )}
-            {generatorOpen && canManage && (
+            {generatorOpen && allows("fixtures") && canManage && (
               <SmartFixtureGenerator
                 tournament={t}
                 teams={teams}
@@ -1370,7 +1382,7 @@ export function TournamentPage({
             </p>
           </TabsContent>
           <TabsContent value="statistics" className="m-0 p-5 sm:p-8">
-            <TournamentStatistics
+            <TournamentStatistics awardsAllowed={allows("awards")}
               summary={summary}
               renderCard={(stat) => <StatCard stat={stat} />}
             />

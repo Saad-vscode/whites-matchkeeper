@@ -4,11 +4,15 @@ import { matchStageTitle } from "./match-stage";
 type MatchSummary = ReturnType<typeof tournamentSummary>["matches"][number];
 
 export function tournamentHonours(rows: MatchSummary[]) {
-  // A finished group stage is not a finished tournament. Ambiguous finals
-  // and undecided results must never produce an invented champion.
-  if (rows.some(({ m }) => m.status === "scheduled" || m.status === "live")) return null;
-  const finals = rows.filter(
-    ({ m }) => m.status !== "cancelled" && matchStageTitle(m.rules) === "Final",
+  // A decided final establishes honours even if unused fixtures remain.
+  // A finished group stage, ambiguous finals or undecided results do not.
+  const bracketFinals = rows.filter(({ m }) => m.status !== "cancelled" &&
+    !!m.rules && typeof m.rules === "object" && !Array.isArray(m.rules) && m.rules["playoffNode"] === "final");
+  const finals = bracketFinals.length ? bracketFinals : rows.filter(
+    ({ m }) => m.status !== "cancelled" && (
+      matchStageTitle(m.rules)?.trim().toLowerCase() === "final" ||
+      (!!m.rules && typeof m.rules === "object" && !Array.isArray(m.rules) && m.rules["playoffNode"] === "final")
+    ),
   );
   const final = finals[0];
   if (finals.length !== 1 || !final) return null;

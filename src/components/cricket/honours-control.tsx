@@ -1,3 +1,4 @@
+import { useFeatureAccess } from "@/lib/feature-access";
 import { useState } from "react";
 import { Play, Square, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,6 +6,7 @@ import { useTournamentPresentation } from "@/lib/cricket/tournament-presentation
 import { usePresentation } from "@/lib/presentation-settings";
 import { Button } from "@/components/ui/button";
 export function HonoursControl({ id }: { id: string }) {
+  const { allows } = useFeatureAccess({ tournament: id });
   const query = useTournamentPresentation(id),
     settings = usePresentation();
   const [busy, setBusy] = useState(false),
@@ -28,6 +30,7 @@ export function HonoursControl({ id }: { id: string }) {
       setBusy(false);
     }
   };
+  if (!allows("honours") || !allows("tv")) return null;
   return (
     <section className="m-5 rounded-xl border border-border bg-primary/5 p-5">
       <div className="flex flex-wrap items-center justify-between gap-4">

@@ -1,3 +1,5 @@
+import { useFeatureAccess, readFeatureAccess } from "@/lib/feature-access";
+import { maintenanceAllowsScoring } from '@/lib/global-settings';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
@@ -5,6 +7,8 @@ import { derive } from "./match";
 import { draftKey, loadDraft, replay, saveDraft, type ScoreDraft, type ScoreOperation, type ScoreSnapshot } from "./offline";
 
 export function useScoring(matchId: string, userId: string) {
+  const { allows } = useFeatureAccess();
+  const offlineAllowed = allows("offline");
   const key = draftKey(userId, matchId);
   const draft = useRef<ScoreDraft | null>(null);
   const mounted = useRef(false);
@@ -93,12 +97,17 @@ export function useScoring(matchId: string, userId: string) {
 
   const mutate = useCallback(async (operation: Omit<ScoreOperation, "id">) => {
     if (!draft.current || blocked.current) return false;
+    if (!maintenanceAllowsScoring(matchId)) { setError('Platform maintenance is active. Your pending scores are preserved; new changes are paused.'); return false; }
+    if (!offlineAllowed) {
+      if (!navigator.onLine) { setError("This account requires a connection for new scoring. Previously saved balls are preserved."); return false; }
+      try { await readFeatureAccess(); } catch { setError("Connect to verify access before recording another ball. Your saved balls are safe."); return false; }
+    }
     try {
       publish({ ...draft.current, queue: [...draft.current.queue, { ...operation, id: crypto.randomUUID() }] });
       void sync();
       return true;
     } catch { setError("Could not save on this device. Free some storage before scoring another ball."); return false; }
-  }, [publish, sync]);
+  }, [publish, sync, offlineAllowed, matchId]);
 
   const useServer = async () => {
     if (!navigator.onLine || locked.current) return;

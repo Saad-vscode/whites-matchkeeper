@@ -104,6 +104,7 @@ export function usePlayoffs(id: string | undefined, enabled = true, canSync = fa
   }, [query.data, canSync, id, qc, retry]);
   return {
     ...query,
+    data: query.isError ? undefined : query.data,
     syncError,
     retrySync: () => {
       attempted.current = null;

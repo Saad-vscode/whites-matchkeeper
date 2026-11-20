@@ -50,6 +50,7 @@ afterEach(() => {
 });
 it("allows qualification counts, seed swaps and explicit approval", async () => {
   view(context());
+  fireEvent.change(screen.getByLabelText("Playoff format"), { target: { value: "single" } });
   expect(screen.getByLabelText("Seed 1")).toHaveValue("a");
   expect(screen.getByLabelText("Seed 2")).toHaveValue("d");
   fireEvent.change(screen.getByLabelText("Group A qualifying teams"), { target: { value: "3" } });
@@ -68,6 +69,28 @@ it("allows qualification counts, seed swaps and explicit approval", async () => 
       }),
     ),
   );
+});
+it.each([true, false])("approves qualifier routing for grouped=%s", async (grouped) => {
+  const ctx = context();
+  if (!grouped) ctx.groups = [];
+  view(ctx);
+  expect(screen.getByLabelText("Playoff format")).toHaveValue("ipl");
+  fireEvent.click(screen.getByRole("button", { name: "Approve draw & create fixtures" }));
+  const seeds = grouped ? ["a", "d", "b", "e"] : ["a", "b", "c", "d"];
+  await waitFor(() => expect(rpc).toHaveBeenCalledWith("save_playoff_draw",
+    expect.objectContaining({ _approve: true, _draw: makeDraw(seeds, "ipl") })));
+});
+it("lets the organiser convert an unstarted semifinal draw to qualifiers", async () => {
+  const ctx = context();
+  ctx.playoff = { tournament_id: "tour", revision: 1, approved: true,
+    draw: makeDraw(["a", "d", "b", "e"], "single") };
+  view(ctx);
+  fireEvent.click(screen.getByRole("button", { name: "Edit draw" }));
+  fireEvent.change(screen.getByLabelText("Playoff format"), { target: { value: "ipl" } });
+  fireEvent.click(screen.getByRole("button", { name: "Use top teams from standings" }));
+  fireEvent.click(screen.getByRole("button", { name: "Approve draw & create fixtures" }));
+  await waitFor(() => expect(rpc).toHaveBeenCalledWith("save_playoff_draw",
+    expect.objectContaining({ _draw: makeDraw(["a", "d", "b", "e"], "ipl") })));
 });
 it("keeps spectators read-only and labels future matches clearly", () => {
   const ctx = context();

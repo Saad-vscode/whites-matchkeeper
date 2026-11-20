@@ -1,3 +1,4 @@
+import { AccountAccessGate } from "@/components/account-access-gate";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -9,5 +10,7 @@ export const Route = createFileRoute("/_authenticated")({
     if (!user) throw redirect({ to: "/auth" });
     return { user };
   },
-  component: () => <Outlet />,
+  component: ProtectedPage,
 });
+
+function ProtectedPage() { const { user } = Route.useRouteContext(); return <AccountAccessGate userId={user.id}><Outlet /></AccountAccessGate>; }

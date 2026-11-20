@@ -26,6 +26,16 @@ import { useLiveMatch } from "./match";
 import { matchFixture } from "@/test/tournament-fixtures";
 beforeEach(() => { mock.rows = { one: matchFixture({ id: "one" }), two: matchFixture({ id: "two" }) }; mock.callbacks = {}; mock.pending = null; });
 afterEach(() => { cleanup(); vi.useRealTimers(); });
+it('clears the previously visible score when a public access check returns no match', async () => {
+  const { result } = renderHook(() => useLiveMatch('one'));
+  await waitFor(() => expect(result.current.match?.id).toBe('one'));
+  mock.rows['one'] = null;
+  await act(async () => { await result.current.refetch(); });
+  expect(result.current.match).toBeNull();
+  expect(result.current.derived).toBeNull();
+  expect(result.current.deliveries).toEqual([]);
+  expect(result.current.error).toBe('Match not found');
+});
 it("receives selections from match updates with no deliveries", async () => {
   const { result } = renderHook(() => useLiveMatch("one"));
   await waitFor(() => expect(result.current.match?.id).toBe("one"));

@@ -1,3 +1,4 @@
+import { globalDefault } from '../global-settings';
 import { useEffect, useState } from "react";
 import { HIGHLIGHTS, type HighlightKind } from "./tv-highlights";
 export const TV_SETTINGS_EVENT = "crease-tv-settings";
@@ -10,7 +11,7 @@ export type AnimationSettings = {
 };
 export function defaultAnimationSettings(): AnimationSettings {
   return {
-    enabled: true,
+    enabled: globalDefault('animations', true),
     duration: 2800,
     motion: "full",
     events: Object.fromEntries(Object.keys(HIGHLIGHTS).map((k) => [k, true])) as Record<
@@ -26,6 +27,11 @@ export function readAnimationSettings(): AnimationSettings {
     if (typeof value.enabled === "boolean") base.enabled = value.enabled;
     if ([2000, 2500, 2800, 3000].includes(value.duration)) base.duration = value.duration;
     if (value.motion === "reduced") base.motion = "reduced";
+    // New dismissal variants inherit an existing opt-out until explicitly configured.
+    if (value.events?.wicket === false) {
+      base.events.caught = false;
+      base.events.stumped = false;
+    }
     for (const key of Object.keys(HIGHLIGHTS) as HighlightKind[])
       if (typeof value.events?.[key] === "boolean") base.events[key] = value.events[key];
   } catch {

@@ -1,3 +1,5 @@
+import { usePlatformRole } from "@/lib/platform-admin";
+import { PlatformModeSwitch } from "@/components/platform-mode-switch";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -59,6 +61,8 @@ export function ConnBadge({ conn, lastUpdated, dark }: { conn: ConnState; lastUp
 
 export function SiteHeader() {
   const { user } = useUser();
+  const platformRole = usePlatformRole(user?.id);
+  const isPlatformAdmin = !platformRole.isError && (platformRole.data === "owner" || platformRole.data === "admin");
   const navigate = useNavigate();
   const qc = useQueryClient();
   const signOut = async () => {
@@ -70,10 +74,13 @@ export function SiteHeader() {
   return (
     <header className="border-b border-border bg-card/70 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-5 sm:px-8">
-        <Link to="/" className="flex items-baseline gap-2">
+        {isPlatformAdmin ? <div><Link to="/" className="flex items-baseline gap-2">
           <span className="text-2xl font-extrabold tracking-tight text-primary">Crease</span>
           <span className="hidden text-xs uppercase tracking-[0.2em] text-muted-foreground sm:inline">cricket scoring</span>
-        </Link>
+        </Link><PlatformModeSwitch /></div> : <Link to="/" className="flex items-baseline gap-2">
+          <span className="text-2xl font-extrabold tracking-tight text-primary">Crease</span>
+          <span className="hidden text-xs uppercase tracking-[0.2em] text-muted-foreground sm:inline">cricket scoring</span>
+        </Link>}
         <nav aria-label="Main navigation" className="flex items-center gap-1 rounded-xl border border-border bg-background p-1 sm:gap-2">
           <Link to="/settings" activeProps={{className:"bg-primary/10 text-primary"}} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-muted"><Settings2 size={17}/><span className="hidden sm:inline">Settings</span><span className="sr-only sm:hidden">Settings</span></Link>
           {user ? (

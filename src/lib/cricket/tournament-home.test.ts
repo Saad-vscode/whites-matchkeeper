@@ -19,12 +19,24 @@ describe("tournament home results", () => {
     });
     expect(tournamentHonours(summary([final], []))).toBeNull();
   });
-  it("keeps teams during group matches, live finals, or outstanding fixtures", () => {
+  it("keeps teams during group matches or live finals", () => {
     expect(tournamentHonours(summary([match()]))).toBeNull();
     expect(tournamentHonours(summary([{ ...final, status: "live" }]))).toBeNull();
-    expect(
-      tournamentHonours(summary([final, match({ id: "next", status: "scheduled" })])),
-    ).toBeNull();
+  });
+  it("shows honours after a decided final even when unused fixtures remain", () => {
+    expect(tournamentHonours(summary([final, match({ id: "unused", status: "scheduled" })])))
+      .toEqual(tournamentHonours(summary()));
+  });
+  it("recognizes bracket final identity and normalized final titles", () => {
+    for (const rules of [{ playoffNode: "final" }, { tournamentStage: { kind: "other", title: " final " } }]) {
+      expect(tournamentHonours(summary([{ ...final, rules }]))).toEqual(tournamentHonours(summary()));
+    }
+  });
+  it("uses the bracket final instead of an older manually labelled final", () => {
+    const bracket = { ...final, rules: { playoffNode: "final", tournamentStage: { kind: "other", title: "Final" } } };
+    expect(tournamentHonours(summary([bracket, { ...final, id: "old-final" }, match({ id: "other", status: "live" })])))
+      .toEqual(tournamentHonours(summary()));
+    expect(tournamentHonours(summary([{ ...bracket, status: "live" }, final]))).toBeNull();
   });
   it("does not invent champions for ties, abandonment, or multiple finals", () => {
     const tied = [

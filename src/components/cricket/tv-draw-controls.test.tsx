@@ -1,3 +1,4 @@
+vi.mock("@/lib/feature-access", async (original) => { const module = await original<typeof import("@/lib/feature-access")>(); const access = module.allFeatures(true); return { ...module, useFeatureAccess: () => ({ allows: () => true, access }) }; });
 vi.mock("@/lib/cricket/tournament-branding",()=>({useTournamentBranding:()=>({data:null})}));
 import {act,cleanup,fireEvent,render,screen} from "@testing-library/react";
 import {afterEach,beforeEach,expect,it,vi} from "vitest";

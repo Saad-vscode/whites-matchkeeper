@@ -24,6 +24,7 @@ export function TvVictory({
   award,
   settings,
   tournamentName,
+  runnerUp = false,
 }: {
   name: string;
   result: string;
@@ -33,10 +34,11 @@ export function TvVictory({
   award?: string | undefined;
   settings: PresentationSettings;
   tournamentName?: string | undefined;
+  runnerUp?: boolean;
 }) {
   return (
     <main
-      className="tv-victory"
+      className={`tv-victory${runnerUp ? " tv-runner-presentation" : ""}`}
       data-level={level}
       data-style={settings.style}
       data-motion={settings.motion}
@@ -45,7 +47,7 @@ export function TvVictory({
       <TvWatermark url={watermark} />
       <div className="victory-halo" aria-hidden="true" />
       <div className="victory-confetti" aria-hidden="true">
-        {Array.from({ length: level === "final" ? 42 : level === "playoff" ? 26 : 12 }, (_, i) => (
+        {Array.from({ length: runnerUp ? 20 : level === "final" ? 42 : level === "playoff" ? 26 : 12 }, (_, i) => (
           <i
             key={i}
             style={
@@ -59,31 +61,34 @@ export function TvVictory({
         ))}
       </div>
       <div className="victory-content">
-        {watermark && <img className="victory-brand" src={watermark} alt="Tournament logo" />}
         <p className="victory-kicker">
           <Sparkles />
-          {level === "final"
+          {runnerUp ? "An outstanding journey" : level === "final"
             ? "A season to remember"
             : level === "playoff"
               ? "The journey continues"
-              : "A moment to celebrate"}
+              : "Match complete"}
           <Sparkles />
         </p>
-        <div className="victory-emblem">
-          {logo ? <img src={logo} alt="" /> : <Trophy />}
-          {logo && <Trophy className="victory-mini-trophy" />}
+        <div className="victory-hero">
+          <div className="victory-emblem">
+            {logo ? <img src={logo} alt="" /> : runnerUp ? <Medal /> : <Trophy />}
+            {logo && (runnerUp ? <Medal className="victory-mini-trophy" /> : <Trophy className="victory-mini-trophy" />)}
+          </div>
+          <div className="victory-identity">
+            <p className="victory-title">
+              {runnerUp ? "Runners-up" : level === "final" ? "Champions" : "Victory"}
+              {tournamentName && (
+                <span className="victory-tournament">
+                  {level === "final" ? "of " : ""}
+                  {tournamentName}
+                </span>
+              )}
+            </p>
+            <h1 data-long={name.length > 20}>{name}</h1>
+            {result && <p className="victory-result">{result}</p>}
+          </div>
         </div>
-        <p className="victory-title">
-          {level === "final" ? "Champions" : "Victory"}
-          {tournamentName && (
-            <span className="victory-tournament">
-              {level === "final" ? "of " : ""}
-              {tournamentName}
-            </span>
-          )}
-        </p>
-        <h1>{name}</h1>
-        {result && <p className="victory-result">{result}</p>}
         {award && (
           <section className="victory-award" aria-label="Man of the Match">
             <Medal />

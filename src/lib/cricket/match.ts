@@ -91,20 +91,41 @@ export function useLiveMatch(matchId: string) {
   const refetch = useCallback(async () => {
     const epoch = generation.current;
     const ticket = ++request.current;
-    const [m, d] = await Promise.all([
-      supabase.from("matches").select("*").eq("id", matchId).maybeSingle(),
-      supabase.from("deliveries").select("*").eq("match_id", matchId).order("innings").order("seq"),
-    ]);
-    if (!alive.current || epoch !== generation.current || ticket !== request.current) return;
-    if (m.error || !m.data) {
-      setError(m.error?.message ?? "Match not found");
-      return;
+    const result = await supabase.rpc("read_live_match", { _match: matchId });
+    let snapshotData: unknown = result.data;
+    let snapshotError = result.error;
+    // Keep older databases functional while the forward-only snapshot migration
+    // is being applied. Normal row-level policies still guard this fallback.
+    if (snapshotError?.code === "PGRST202") {
+      const [matchResult, deliveryResult] = await Promise.all([
+        supabase.from("matches").select("*").eq("id", matchId).maybeSingle(),
+        supabase.from("deliveries").select("*").eq("match_id", matchId).order("innings").order("seq"),
+      ]);
+      if (!matchResult.error && !deliveryResult.error && matchResult.data) {
+        snapshotData = { match: matchResult.data, deliveries: deliveryResult.data ?? [] };
+        snapshotError = null;
+      } else {
+        snapshotError = matchResult.error ?? deliveryResult.error ?? snapshotError;
+      }
     }
-    if (d.error) { setError(d.error.message); return; }
+    if (!alive.current || epoch !== generation.current || ticket !== request.current) return false;
+    const snapshot = snapshotData && typeof snapshotData === "object" && !Array.isArray(snapshotData)
+      ? snapshotData as { match?: MatchRow | null; deliveries?: Delivery[] }
+      : null;
+    if (snapshotError || !snapshot?.match) {
+      // A successful empty result means access was revoked or the match removed.
+      // Do not leave a previously public score on a spectator/TV display.
+      if (!snapshotError || snapshotError.code === "42501") { setMatch(null); setDeliveries([]); }
+      setError(snapshotError?.message ?? "Match not found or no longer public");
+      setConn("offline");
+      return false;
+    }
     setError(null);
-    setMatch(m.data);
-    setDeliveries((d.data ?? []) as unknown as Delivery[]);
+    setMatch(snapshot.match);
+    setDeliveries(snapshot.deliveries ?? []);
     setLastUpdated(new Date());
+    setConn("live");
+    return true;
   }, [matchId]);
 
   useEffect(() => {
@@ -120,31 +141,13 @@ export function useLiveMatch(matchId: string) {
     refetch();
     const channel = supabase
       .channel(`match-${matchId}-${Math.random().toString(36).slice(2)}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches", filter: `id=eq.${matchId}` }, (p) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "matches", filter: `id=eq.${matchId}` }, () => {
         if (!subscribed) return;
-        request.current++;
-        if (p.eventType === "UPDATE") setMatch(p.new as MatchRow);
-        setLastUpdated(new Date());
+        void refetch();
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "deliveries", filter: `match_id=eq.${matchId}` }, (p) => {
+      .on("postgres_changes", { event: "*", schema: "public", table: "deliveries", filter: `match_id=eq.${matchId}` }, () => {
         if (!subscribed) return;
-        request.current++;
-        setDeliveries((prev) => {
-          if (p.eventType === "INSERT") {
-            const n = p.new as unknown as Delivery;
-            return prev.some((x) => x.id === n.id) ? prev : [...prev, n];
-          }
-          if (p.eventType === "DELETE") {
-            const id = (p.old as { id?: string }).id;
-            return prev.filter((x) => x.id !== id);
-          }
-          if (p.eventType === "UPDATE") {
-            const n = p.new as unknown as Delivery;
-            return prev.map((x) => x.id === n.id ? n : x);
-          }
-          return prev;
-        });
-        setLastUpdated(new Date());
+        void refetch();
       })
       .subscribe((status) => {
         if (!subscribed) return;
@@ -153,7 +156,7 @@ export function useLiveMatch(matchId: string) {
           // Establish the reconnect snapshot before declaring the stream live.
           // Consumers must not mistake missed historical balls for new events.
           setConn("connecting");
-          void refetch().then(() => { if (subscribed && connection === connectionVersion) setConn("live"); });
+          void refetch().then((ok) => { if (subscribed && connection === connectionVersion && !ok) setConn("offline"); });
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") setConn("offline");
       });
     const off = () => setConn("offline");

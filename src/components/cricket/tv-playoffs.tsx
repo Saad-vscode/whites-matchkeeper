@@ -52,12 +52,20 @@ export function TvPlayoffs({
       <main className="tv-champions" aria-label="Tournament champions">
         <TvWatermark url={logo} />
         <div className="tv-crown-rays" aria-hidden="true" />
-        <p className="tv-draw-eyebrow">The journey. The moment. The champions.</p>
-        <Trophy className="tv-champions-trophy" aria-hidden="true" />
-        {winner?.logo_url && <img className="tv-champion-logo" src={winner.logo_url} alt="" />}
-        <h1>{winner?.name ?? "Champions"}</h1>
+        <p className="tv-draw-eyebrow">A season to remember</p>
+        <div className="tv-champion-crest">
+          <svg className="tv-champion-laurels" viewBox="0 0 320 220" fill="none" aria-hidden="true">
+            <path d="M115 195C40 174 28 88 68 30M205 195C280 174 292 88 252 30" stroke="currentColor" strokeWidth="2" />
+            {[0, 1, 2, 3, 4, 5].map(i => <g key={i} transform={`translate(160 110) rotate(${i * 15 - 40})`}>
+              <ellipse cx="-108" cy="0" rx="7" ry="18" transform="rotate(-35 -108 0)" fill="currentColor" opacity={.45 + i * .07} />
+              <ellipse cx="108" cy="0" rx="7" ry="18" transform="rotate(35 108 0)" fill="currentColor" opacity={.45 + i * .07} />
+            </g>)}
+          </svg>
+          {winner?.logo_url ? <img className="tv-champion-logo" src={winner.logo_url} alt="" /> : <Trophy className="tv-champions-trophy" aria-hidden="true" />}
+        </div>
         <p className="tv-champions-title">Champions</p>
-        <p className="tv-champions-event">{tvTournamentName(ctx.tournament)}</p>
+        <h1>{winner?.name ?? "Champions"}</h1>
+        <p className="tv-champions-event">of {tvTournamentName(ctx.tournament)}</p>
         {runner && (
           <p className="tv-runner">
             Runners-up <strong>{runner.name}</strong>

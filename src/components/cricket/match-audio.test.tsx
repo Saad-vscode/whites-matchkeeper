@@ -1,3 +1,5 @@
+const featureState = vi.hoisted(() => ({ sound: true }));
+vi.mock("@/lib/feature-access", async (original) => { const module = await original<typeof import("@/lib/feature-access")>(); const access = module.allFeatures(true); return { ...module, useFeatureAccess: () => ({ allows: () => featureState.sound, access }) }; });
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { MatchAudio } from "./match-audio";
@@ -14,6 +16,7 @@ let audio: {
   src: string;
 };
 beforeEach(() => {
+  featureState.sound = true;
   const values = new Map<string, string>();
   vi.stubGlobal("localStorage", {
     clear: () => values.clear(),
@@ -86,4 +89,17 @@ it("hides the scorer control when disabled and stops playback when disabled in s
   await act(async () => fireEvent.click(screen.getByRole("checkbox")));
   expect(localStorage.getItem(AUDIO_KEY)).toBe("false");
   expect(screen.queryByRole("timer")).not.toBeInTheDocument();
+});
+
+it("stops a playing horn on permission revocation without deleting its preference", async () => {
+ const view = await mount(); await play();
+ featureState.sound = false;
+ view.rerender(<MatchAudio />);
+ expect(screen.queryByRole("button", { name: "Play horn" })).toBeNull();
+ expect(audio.pause).toHaveBeenCalled();
+ expect(vi.getTimerCount()).toBe(0);
+ expect(localStorage.getItem(AUDIO_KEY)).toBe("true");
+ featureState.sound = true;
+ view.rerender(<MatchAudio />);
+ expect(screen.getByRole("button", { name: "Play horn" })).toBeInTheDocument();
 });

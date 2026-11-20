@@ -1,3 +1,4 @@
+vi.mock("@/lib/feature-access", async (original) => { const module = await original<typeof import("@/lib/feature-access")>(); const access = module.allFeatures(true); return { ...module, useFeatureAccess: () => ({ allows: () => true, access }) }; });
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 vi.mock("@tanstack/react-router", () => ({
@@ -215,3 +216,4 @@ it("classifies a legacy run-out through an audited edit without changing its run
     patch: {}, reason: "Classified legacy run-out fielding credit",
   }));
 });
+vi.mock("@/lib/cricket/tournament-branding", () => ({ useTournamentBranding: () => ({ data: null }) }));

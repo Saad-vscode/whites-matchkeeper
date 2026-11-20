@@ -1,3 +1,4 @@
+import { useFeatureAccess } from "@/lib/feature-access";
 import { TournamentName } from "@/components/cricket/tournament-name";
 import { MatchAward } from "@/components/cricket/match-award";
 import { useTvPreparation } from "@/lib/cricket/tv-feed";
@@ -35,6 +36,7 @@ import {
   computeInnings,
   countsAsWicket,
   formatOvers,
+  maxWickets,
   matchResult,
   requiredRunRate,
   runRate,
@@ -106,6 +108,7 @@ function ScorePage() {
     );
 
   const needsToss = !match.toss_winner;
+  if (tournament?.platform_disabled || tournament?.platform_archived || tournament?.platform_deleted_at) return <Centered><p>This tournament is restricted and read-only. Scoring and synchronization are paused by platform administration.</p><p className="mt-3 text-sm">Saved scores and queued operations are preserved. Contact the organizer before continuing.</p><Button className="mt-4" variant="outline" asChild><Link to="/dashboard">My matches</Link></Button></Centered>;
   return (
     <div className="tournament-page scoring-page min-h-screen bg-background">
       <div className="sticky top-0 z-10 border-b border-border bg-card/90 backdrop-blur">
@@ -494,7 +497,10 @@ export function Scorer({ lm }: { lm: LM }) {
     match.status === "completed" ||
     match.status === "abandoned" ||
     match.status === "cancelled";
-  const lastManAlone = d.cfg.rules.lastManBats && s.wickets === d.cfg.playersPerTeam - 1;
+  const lastManAlone =
+    d.cfg.rules.lastManBats &&
+    maxWickets(d.cfg) > d.cfg.playersPerTeam - 1 &&
+    s.wickets === d.cfg.playersPerTeam - 1;
   const needStriker = !live.striker;
   const needNon = !live.nonStriker && !lastManAlone;
   const needBowler = !live.bowler;
@@ -921,7 +927,7 @@ export function Scorer({ lm }: { lm: LM }) {
       </AlertDialog>
 
       <AlertDialog open={confirmUndo} onOpenChange={setConfirmUndo}>
-        <AlertDialogContent>
+        <AlertDialogContent className="tournament-page rounded-2xl border-border shadow-xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Undo the last ball?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1457,6 +1463,7 @@ export function ExtrasDialog({
 /* ------------------------- Corrections and history ------------------------ */
 
 function ShareLinks({ match }: { match: MatchRow }) {
+  const { allows } = useFeatureAccess({ match: match.id });
   return (
     <section className="grid grid-cols-2 gap-2">
       <Button asChild variant="outline">
@@ -1464,11 +1471,11 @@ function ShareLinks({ match }: { match: MatchRow }) {
           Spectator page
         </Link>
       </Button>
-      <Button asChild variant="outline">
+      {allows("tv") && <Button asChild variant="outline">
         <Link to="/display/$matchId" params={{ matchId: match.id }} target="_blank">
           TV scoreboard
         </Link>
-      </Button>
+      </Button>}
     </section>
   );
 }

@@ -1,4 +1,5 @@
-import { MatchShelf, splitMatches } from "@/components/cricket/match-shelf";
+import { PublicTournaments, type PublicTournament } from "@/components/cricket/public-tournaments";
+import { allRows } from "@/lib/cricket/use-tournament";
 import type { MatchRow } from "@/lib/cricket/match";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -50,7 +51,11 @@ function Index() {
     },
     refetchInterval: 10000,
   });
-  const groups = splitMatches(data);
+  const tournaments = useQuery({
+    queryKey: ["public-tournaments"],
+    queryFn: () => allRows<PublicTournament>((from, to) => supabase.from("tournaments").select("*").order("created_at", { ascending: false }).order("id").range(from, to)),
+    refetchInterval: 10000,
+  });
   return (
     <div className="tournament-page front-page min-h-screen">
       <SiteHeader />
@@ -68,6 +73,7 @@ function Index() {
               share every moment live.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
+              <Button asChild size="lg" variant="outline"><a href="#tournaments">Browse tournaments</a></Button>
               <Button asChild size="lg">
                 <Link to="/matches/new">Start a match</Link>
               </Button>
@@ -86,19 +92,13 @@ function Index() {
             <span>EVERY BALL COUNTS</span>
           </div>
         </section>
-        {isLoading && <p role="status">Loading matches…</p>}
-        {error && (
+        {(isLoading || tournaments.isPending) && <p role="status">Loading tournaments and matches…</p>}
+        {(error || tournaments.error) && (
           <p role="alert" className="rounded-xl bg-muted p-4">
             Matches are temporarily unavailable. Please try again shortly.
           </p>
         )}
-        {!isLoading && !error && (
-          <>
-            <MatchShelf title="Live Now" matches={groups.live} />
-            <MatchShelf title="Upcoming Matches" matches={groups.upcoming} />
-            <MatchShelf title="Recent Matches" matches={groups.recent} />
-          </>
-        )}
+        {!isLoading && !tournaments.isPending && !error && !tournaments.error && <PublicTournaments tournaments={tournaments.data ?? []} matches={data} />}
         <footer className="flex flex-wrap justify-between gap-3 border-t border-border py-6 text-sm text-muted-foreground">
           <span className="font-bold text-primary">Crease</span>
           <span>A place for every cricket match.</span>

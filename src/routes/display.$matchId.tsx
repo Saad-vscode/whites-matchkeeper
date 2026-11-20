@@ -1,3 +1,5 @@
+import { globalDefault } from '@/lib/global-settings';
+import { useFeatureAccess } from "@/lib/feature-access";
 import { useTournamentBranding } from "@/lib/cricket/tournament-branding";
 import { tvTournamentName } from "@/lib/cricket/tv-tournament-name";
 import { useEffect, useState, useRef } from "react";
@@ -32,6 +34,7 @@ export const Route = createFileRoute("/display/$matchId")({
 function Display() {
   const { matchId } = Route.useParams();
   const [activeId, setActiveId] = useState(matchId);
+  const { allows } = useFeatureAccess({ match: activeId });
   const [following, setFollowing] = useState(true);
   const [tournamentId, setTournamentId] = useState<string | null>(null);
   const { match, deliveries, derived, conn, lastUpdated, error, refetch } = useLiveMatch(activeId);
@@ -41,10 +44,11 @@ function Display() {
   const [manualDraw,setManualDraw] = useState<null|5|10|"hold">(null);
   const [manualRequest,setManualRequest] = useState(0);
   const [drawDismissed,setDrawDismissed] = useState(false);
+  const [highlightPlaying, setHighlightPlaying] = useState(false);
   const [resultElapsed,setResultElapsed] = useState(false);
   const presentation = usePresentation();
   const broadcast = useTournamentPresentation(tournamentId);
-  const honoursPlaying = following && !!broadcast.data?.playing && !!playoffs.data;
+  const honoursPlaying = allows("honours") && !!match && !broadcast.isError && !playoffs.isError && following && !!broadcast.data?.playing && !!playoffs.data;
   const wasPlaying = useRef(false);
   useEffect(()=>{if(wasPlaying.current && !honoursPlaying){setDrawDismissed(true);setResultElapsed(true);}wasPlaying.current=honoursPlaying;},[honoursPlaying]);
   const publication = useQuery({queryKey:["match-award",match?.id,match?.score_revision],enabled:match?.status==="completed",queryFn:async()=>{
@@ -52,10 +56,10 @@ function Display() {
   },refetchInterval:5000,retry:false});
   useEffect(()=>{
     setResultElapsed(false);
-    if(!match||!["completed","abandoned","cancelled"].includes(match.status))return;
+    if(highlightPlaying||!match||!["completed","abandoned","cancelled"].includes(match.status))return;
     const timer=window.setTimeout(()=>setResultElapsed(true),presentation.duration);
     return()=>window.clearTimeout(timer);
-  },[match?.id,match?.status,publication.data,presentation.duration]);
+  },[match?.id,match?.status,publication.data,presentation.duration,highlightPlaying]);
   useEffect(()=>{
     setManualDraw(null);
     setDrawDismissed(false);
@@ -66,18 +70,18 @@ function Display() {
     return()=>window.clearTimeout(timer);
   },[manualDraw,manualRequest]);
   useEffect(()=>{try{setAutoDraw(localStorage.getItem("crease-tv-auto-draw")!=="false")}catch{/* session default */}},[]);
-  const approved=!!playoffs.data?.playoff?.approved;
+  const approved=!!match && !playoffs.isError && !!playoffs.data?.playoff?.approved;
   const showDraw=approved&&(!!manualDraw||(!drawDismissed&&automaticDraw(match,approved,following,autoDraw,preparing,resultElapsed)));
   const requestDraw=(duration:5|10|"hold")=>{setManualDraw(duration);setManualRequest(n=>n+1);setSettings(false)};
   const logos = useTvLogos(match);
   const branding = useTournamentBranding(match?.tournament_id);
   const tournamentLogo = branding.data?.logo_url ?? null;
-  const tournamentName = tvTournamentName(branding.data ?? playoffs.data?.tournament) ?? match?.name;
+  const tournamentName = match ? tvTournamentName(branding.data ?? playoffs.data?.tournament) ?? match.name : undefined;
   const outcome = match?.status === "completed" ? matchOutcome(match, deliveries) : null;
   const winner = outcome && outcome.winner !== "tie" ? outcome.winner : null;
   const published = !!match && !!publication.data && typeof publication.data === "object" && !Array.isArray(publication.data) && publication.data["score_revision"] === match.score_revision;
-  const award = published && match ? calculateMatchAward(match, deliveries) : null;
-  const celebrating = !!winner && presentation.celebration && !resultElapsed && !manualDraw;
+  const award = allows("awards") && published && match ? calculateMatchAward(match, deliveries) : null;
+  const celebrating = !highlightPlaying && allows("celebrations") && !!winner && presentation.celebration && !resultElapsed && !manualDraw;
   const [settings, setSettings] = useState(false);
   const [theme, setTheme] = useState("teal");
   const [font, setFont] = useState("modern");
@@ -89,7 +93,7 @@ function Display() {
     const refreshStyle = () => {
     try {
       const stored = JSON.parse(localStorage.getItem("crease-tv-style") ?? "{}");
-      if (["teal", "blue", "violet", "night"].includes(stored.theme)) setTheme(stored.theme);
+      if (["teal", "blue", "violet", "night"].includes(stored.theme)) setTheme(stored.theme); else setTheme(globalDefault("tv_theme", "teal"));
       if (["modern", "system", "classic"].includes(stored.font)) setFont(stored.font);
     } catch { /* Storage may be disabled. */ }
     };
@@ -110,7 +114,8 @@ function Display() {
       else setNotice("Fullscreen is not supported by this browser.");
     } catch { setNotice("Use your browser’s fullscreen control to expand the scoreboard."); }
   };
-  return <TvViewport><div className="tournament-page scoring-page tv-page tv-broadcast flex min-h-dvh flex-col" data-theme={theme} data-font={font}>
+  if (!allows("tv")) return <TvViewport><main className="tv-page flex min-h-dvh items-center justify-center p-8"><p>TV display is unavailable for this match.</p></main></TvViewport>;
+  return <TvViewport><div className="tournament-page scoring-page tv-page tv-broadcast flex min-h-dvh flex-col" data-theme={allows("appearance") ? theme : "teal"} data-font={allows("appearance") ? font : "modern"}>
     <header className="tv-topbar flex flex-wrap items-center justify-between gap-3 border-b border-border px-[3vw] py-4">
       <div><span className="text-lg font-extrabold text-primary">Crease</span><span className="ml-3 text-sm text-muted-foreground">TV scoreboard</span></div>
       <p className="tv-topbar-title" title={tournamentName}>{tournamentName}</p>
@@ -121,16 +126,17 @@ function Display() {
       </div>
     </header>
     {settings && <section aria-label="Display options" className="flex flex-wrap items-end gap-5 border-b border-border bg-muted p-5">
-      <label className="grid gap-2 text-sm font-semibold">Color theme<select className="rounded-lg border border-input bg-background p-2" value={theme} onChange={e => saveStyle(e.target.value, font)}><option value="teal">Crease teal</option><option value="blue">Ocean blue</option><option value="violet">Violet</option><option value="night">Night stadium</option></select></label>
+      {allows("appearance") && <><label className="grid gap-2 text-sm font-semibold">Color theme<select className="rounded-lg border border-input bg-background p-2" value={theme} onChange={e => saveStyle(e.target.value, font)}><option value="teal">Crease teal</option><option value="blue">Ocean blue</option><option value="violet">Violet</option><option value="night">Night stadium</option></select></label>
       <label className="grid gap-2 text-sm font-semibold">Font<select className="rounded-lg border border-input bg-background p-2" value={font} onChange={e => saveStyle(theme, e.target.value)}><option value="modern">Modern · Manrope</option><option value="system">System sans</option><option value="classic">Classic · Fraunces</option></select></label>
+      </>}
       {tournamentId && <label className="flex items-center gap-2 py-2 text-sm"><input type="checkbox" checked={following} onChange={e => setFollowing(e.target.checked)} /> Automatically follow tournament</label>}
       {tournamentId && <label className="flex items-center gap-2 py-2 text-sm"><input type="checkbox" checked={autoDraw} onChange={e=>{setAutoDraw(e.target.checked);try{localStorage.setItem("crease-tv-auto-draw",String(e.target.checked))}catch{/* session choice */}}}/> Show playoffs between matches</label>}
       {approved && <fieldset className="flex flex-wrap items-center gap-2"><legend className="mb-2 text-sm font-semibold">Show draw</legend>{([5,10,"hold"] as const).map(duration=><Button key={duration} variant="outline" size="sm" onClick={()=>requestDraw(duration)}>{duration==="hold"?"Until dismissed":`${duration} seconds`}</Button>)}</fieldset>}
       <Button asChild variant="outline"><Link to="/settings" target="_blank" rel="noopener noreferrer">Animation settings & previews</Link></Button>
     </section>}
     {(conn === "offline" || error || notice) && <div role="status" className="bg-muted px-5 py-3 text-center text-sm">{error ?? (conn === "offline" ? "Live connection interrupted. Checking for updates every 5 seconds." : notice)} {error && <Button variant="outline" size="sm" onClick={() => void refetch()}>Retry</Button>}</div>}
-    {honoursPlaying && playoffs.data ? <TvHonours key={broadcast.data?.updated_at} ctx={playoffs.data} seconds={broadcast.data?.seconds ?? 8}/> : celebrating && match && winner ? <TvVictory key={`${match.id}-${JSON.stringify(publication.data)}`} tournamentName={tvTournamentName(branding.data ?? playoffs.data?.tournament)} name={teamName(match,winner)} result={derived?.result ?? ""} level={victoryLevel(match.rules)} logo={logos[winner === "A" ? match.team_a_id ?? "" : match.team_b_id ?? ""]} watermark={tournamentLogo} award={award && !award.uncreditedFielding ? award.winners.map(p=>`${p.name} · ${p.team}`).join(" & ") : undefined} settings={presentation}/> : showDraw && playoffs.data ? <TvPlayoffs ctx={playoffs.data} logo={tournamentLogo} forceDraw={!!manualDraw}/> : match && derived ? <TvScoreboard match={match} d={derived} logos={logos} tournamentLogo={tournamentLogo} /> : <main className="grid flex-1 place-items-center p-12 text-muted-foreground">{error ? "Scoreboard unavailable" : "Connecting to scoreboard…"}</main>}
-    {match && match.id === activeId && !showDraw && !celebrating && !honoursPlaying && <TvHighlights key={match.id} matchId={match.id} deliveries={deliveries} conn={conn} match={match} />}
+    {honoursPlaying && playoffs.data ? <TvHonours key={broadcast.data?.updated_at} ctx={playoffs.data} seconds={broadcast.data?.seconds ?? 8}/> : celebrating && match && winner ? <TvVictory key={`${match.id}-${JSON.stringify(publication.data)}`} tournamentName={tvTournamentName(branding.data ?? playoffs.data?.tournament)} name={teamName(match,winner)} result={derived?.result ?? ""} level={victoryLevel(match.rules)} logo={logos[winner === "A" ? match.team_a_id ?? "" : match.team_b_id ?? ""]} watermark={tournamentLogo} award={award && !award.uncreditedFielding ? award.winners.map(p=>`${p.name} (${p.team})`).join(" & ") : undefined} settings={presentation}/> : showDraw && playoffs.data ? <TvPlayoffs ctx={playoffs.data} logo={tournamentLogo} forceDraw={!!manualDraw}/> : match && derived ? <TvScoreboard match={match} d={derived} logos={logos} tournamentLogo={tournamentLogo} /> : <main className="grid flex-1 place-items-center p-12 text-muted-foreground">{error ? "Scoreboard unavailable" : "Connecting to scoreboard…"}</main>}
+    {match && match.id === activeId && <TvHighlights key={match.id} matchId={match.id} deliveries={deliveries} conn={conn} match={match} suppressed={showDraw || honoursPlaying} onActiveChange={setHighlightPlaying} />}
     <footer className="flex flex-wrap justify-between gap-2 border-t border-border px-[3vw] py-4 text-sm text-muted-foreground">
       <span>{match?.venue || "Crease · Live cricket"}{match ? ` · ${match.overs} overs · ${match.balls_per_over} balls per over` : ""}</span>
       {showDraw ? <Button size="sm" variant="outline" onClick={()=>{setManualDraw(null);setDrawDismissed(true)}}>Return to scoreboard</Button> : <span>{tournamentId && following ? "Following tournament · Next match appears when it starts" : "Following this match"}</span>}

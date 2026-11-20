@@ -1,3 +1,4 @@
+import { useFeatureAccess } from "@/lib/feature-access";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import type { Delivery } from "@/lib/cricket/engine";
 export function MatchAward({ match, deliveries, canPublish = false, blocked = false, tv = false }: {
   match: MatchRow; deliveries: Delivery[]; canPublish?: boolean; blocked?: boolean; tv?: boolean;
 }) {
+  const { allows } = useFeatureAccess({ match: match.id });
   const cache = useQueryClient();
   const key = ["match-award", match.id, match.score_revision];
   const publication = useQuery({
@@ -35,7 +37,7 @@ export function MatchAward({ match, deliveries, canPublish = false, blocked = fa
   const published = !!publication.data && typeof publication.data === "object" && !Array.isArray(publication.data) &&
     publication.data["score_revision"] === match.score_revision && match.status === "completed";
   const award = useMemo(() => published ? calculateMatchAward(match, deliveries) : null, [published, match, deliveries]);
-  if (match.status !== "completed") return null;
+  if (match.status !== "completed" || !allows("awards")) return null;
   const publish = async () => {
     if (busy || blocked) return;
     setBusy(true); setError("");
@@ -55,7 +57,7 @@ export function MatchAward({ match, deliveries, canPublish = false, blocked = fa
   return <section className={tv ? "tv-award" : "rounded-xl border border-border bg-card p-4"} aria-label="Man of the Match">
     {award && !award.uncreditedFielding && award.winners.length > 0 && <div>
       <p className="font-semibold text-primary">Man of the Match{award.winners.length > 1 ? " · Shared award" : ""}</p>
-      <p className="text-xl font-bold">{award.winners.map(p => p.name + " · " + p.team).join(" & ")}</p>
+      <p className="text-xl font-bold">{award.winners.map(p => p.name + " (" + p.team + ")").join(" & ")}</p>
     </div>}
     {canPublish && <div className="mt-3 space-y-2">
       <Button disabled={busy || blocked} onClick={() => void publish()}>{busy ? "Calculating…" : published ? "Recalculate Man of the Match" : "Calculate & publish Man of the Match"}</Button>

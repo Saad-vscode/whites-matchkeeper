@@ -1,0 +1,73 @@
+.broadcast-umpire { animation: broadcast-arrive calc(var(--highlight-duration) * .2) both; transform-origin: 0 390px; }
+.umpire-arm,.umpire-elbow,.umpire-wrist { transform-origin: 0 0; }
+.signal-six .umpire-arm { animation: umpire-six var(--highlight-duration) both; }
+.signal-six .umpire-elbow { animation: umpire-elbow var(--highlight-duration) both; }
+.signal-six .umpire-wrist { animation: umpire-fingers var(--highlight-duration) both; }
+.signal-four .umpire-arm-right { animation: umpire-four var(--highlight-duration) both; }
+.signal-four .umpire-arm-right .umpire-elbow { animation: umpire-sweep var(--highlight-duration) both; }
+.umpire-head { transform-origin: 0 112px; animation: umpire-nod var(--highlight-duration) both; }
+.umpire-torso { transform-origin:0 270px; animation:umpire-body var(--highlight-duration) both; }
+.broadcast-flight .broadcast-ball { offset-rotate: auto; animation: broadcast-flight calc(var(--highlight-duration) * .36) calc(var(--highlight-duration) * (.12 + var(--beat) * .15)) both; }
+.flight-six .broadcast-ball { offset-path: path('M100 430Q430-120 920 70'); }
+.flight-four .broadcast-ball { offset-path: path('M40 350Q460 420 970 310'); }
+.broadcast-trail { stroke-dasharray: 1; animation: broadcast-trail calc(var(--highlight-duration) * .42) calc(var(--highlight-duration) * (.12 + var(--beat) * .15)) both; }
+.broadcast-boundary-word { transform-origin: 690px 220px; animation: broadcast-impact calc(var(--highlight-duration) * .22) calc(var(--highlight-duration) * .25) both; }
+.broadcast-sparks path { animation: broadcast-spark calc(var(--highlight-duration) * .38) calc(var(--highlight-duration) * .3) both; }
+.broadcast-firework { animation: broadcast-burst calc(var(--highlight-duration) * .3) calc(var(--highlight-duration) * (.48 + var(--beat) * .08)) both; }
+.broadcast-six-beat { animation: broadcast-impact calc(var(--highlight-duration) * .2) calc(var(--highlight-duration) * (.16 + var(--beat) * .16)) both; }
+.broadcast-duck-walk { animation: duck-cross var(--highlight-duration) linear both; }
+.duck-step { transform-origin:125px 150px; animation:duck-step calc(var(--highlight-duration) * .14) infinite alternate ease-in-out; }
+.duck-step-back { animation-direction:alternate-reverse; }
+.duck-body-bob { animation:duck-bob calc(var(--highlight-duration) * .14) infinite alternate ease-in-out; }
+.duck-drooping-head { transform-origin:120px 105px; animation:duck-head calc(var(--highlight-duration) * .28) infinite alternate ease-in-out; }
+.duck-falling-tear { animation:duck-tear calc(var(--highlight-duration) * .21) calc(var(--highlight-duration) * var(--beat) * .07) infinite both; }
+.broadcast-duck-gold { filter:drop-shadow(0 0 12px #eac06088); }
+.tv-highlight--duck .tv-highlight-caption,.tv-highlight--golden_duck .tv-highlight-caption { inset:8% 4% auto; }
+.tv-highlight--four .tv-highlight-caption strong,.tv-highlight--six .tv-highlight-caption strong { font-size:clamp(16px,3.2vh,38px); letter-spacing:.25em; }
+.tv-highlight--winning_four .tv-highlight-caption,.tv-highlight--winning_six .tv-highlight-caption { animation-delay:calc(var(--highlight-duration) * .5); }
+.tv-highlight--winning_four .tv-highlight-caption strong,.tv-highlight--winning_six .tv-highlight-caption strong { font-size:clamp(22px,5.5vh,76px); }
+.broadcast-lights { position:absolute; inset:0; pointer-events:none; background:conic-gradient(from 150deg at 15% 0%,transparent,#fff3 10deg,transparent 28deg),conic-gradient(from 180deg at 85% 0%,transparent,#f6cf7926 15deg,transparent 30deg); animation:broadcast-lights var(--highlight-duration) both; }
+.tv-highlight[data-level=match] .broadcast-fireworks { opacity:.45; }
+.tv-highlight[data-level=final] .broadcast-fireworks { stroke-width:5; }
+.tv-highlight--winning_four .broadcast-firework { opacity:.65; }
+.tv-highlight--winning_six .broadcast-firework path { stroke-width:5; }
+@keyframes umpire-body { 0%,100%{transform:rotate(0)} 26%{transform:rotate(-3deg) translateY(-5px)} 48%{transform:rotate(2deg)} 75%{transform:rotate(-1deg)} }
+@keyframes broadcast-arrive { from { opacity:0; transform:translateY(60px) scale(.9); } to { opacity:1; transform:none; } }
+@keyframes umpire-six { 0%,10%{transform:rotate(0)} 35%{transform:rotate(-151deg)} 45%,82%{transform:rotate(-143deg)} 100%{transform:rotate(-135deg)} }
+@keyframes umpire-elbow { 0%,10%{transform:rotate(15deg)} 35%,100%{transform:rotate(-15deg)} }
+@keyframes umpire-fingers { 0%{transform:rotate(0)} 35%{transform:rotate(15deg)} 48%,100%{transform:rotate(-8deg)} }
+@keyframes umpire-four { 0%,8%{transform:rotate(0)} 22%,58%{transform:rotate(-35deg)} 40%,76%,90%{transform:rotate(30deg)} 100%{transform:rotate(0)} }
+@keyframes umpire-sweep { 0%,8%{transform:rotate(0)} 22%,58%{transform:rotate(-40deg)} 40%,76%,90%{transform:rotate(110deg)} 100%{transform:rotate(0)} }
+@keyframes umpire-nod { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg)} 60%{transform:rotate(4deg)} }
+@keyframes broadcast-flight { 0%{offset-distance:0%;opacity:0;scale:.5} 10%{opacity:1} 90%{opacity:1} 100%{offset-distance:100%;opacity:0;scale:1.4} }
+@keyframes broadcast-trail { 0%{stroke-dashoffset:1;opacity:0} 20%{opacity:.8} 85%{stroke-dashoffset:0;opacity:.4} 100%{stroke-dashoffset:-1;opacity:0} }
+@keyframes broadcast-impact { 0%{opacity:0;transform:scale(1.5)} 65%{opacity:1;transform:scale(.97)} 100%{opacity:1;transform:scale(1)} }
+@keyframes broadcast-spark { from{opacity:1;transform:translate(0,0)} to{opacity:0;transform:translate(var(--dx),var(--dy))} }
+@keyframes broadcast-burst { from{opacity:0;transform:scale(.2)} 20%{opacity:1} to{opacity:0;transform:scale(3)} }
+@keyframes duck-cross { from{transform:translateX(-210px)} to{transform:translateX(1100px)} }
+@keyframes duck-step { from{transform:rotate(-13deg)} to{transform:rotate(13deg)} }
+@keyframes duck-bob { from{transform:translateY(-4px)} to{transform:translateY(4px)} }
+@keyframes duck-head { from{transform:rotate(9deg)} to{transform:rotate(18deg)} }
+@keyframes duck-tear { from{transform:translateY(0);opacity:0} 20%{opacity:1} to{transform:translate(8px,85px);opacity:0} }
+@keyframes broadcast-lights { 0%{opacity:0} 30%{opacity:.5} 55%{opacity:1} 100%{opacity:.5} }
+.tv-highlight[data-motion=reduced] .broadcast-duck-walk { transform:translateX(390px); }
+.tv-highlight[data-motion=reduced] .signal-six .umpire-arm { transform:rotate(-143deg); }
+.tv-highlight[data-motion=reduced] .signal-four .umpire-arm-right { transform:rotate(-80deg); }
+.tv-highlight[data-motion=reduced] .broadcast-flight,.tv-highlight[data-motion=reduced] .broadcast-sparks,.tv-highlight[data-motion=reduced] .broadcast-fireworks,.tv-highlight[data-motion=reduced] .broadcast-shockwave,.tv-highlight[data-motion=reduced] .broadcast-stump-impact { display:none; }
+@media(prefers-reduced-motion:reduce) { .broadcast-duck-walk{transform:translateX(390px)} .signal-six .umpire-arm{transform:rotate(-143deg)} .signal-four .umpire-arm-right{transform:rotate(-80deg)} .broadcast-flight,.broadcast-sparks,.broadcast-fireworks,.broadcast-shockwave,.broadcast-stump-impact{display:none} }
+
+.signal-four .umpire-arm-right .umpire-wrist { animation:umpire-four-hand var(--highlight-duration) both; }
+@keyframes umpire-four-hand { 0%,8%,100%{transform:rotate(0)} 22%,58%{transform:rotate(-10deg)} 40%,76%,90%{transform:rotate(15deg)} }
+.tv-highlight[data-motion=reduced] .signal-four .umpire-arm-right {transform:rotate(30deg)}
+.tv-highlight[data-motion=reduced] .signal-four .umpire-arm-right .umpire-elbow {transform:rotate(110deg)}
+@media(prefers-reduced-motion:reduce){.signal-four .umpire-arm-right{transform:rotate(30deg)} .signal-four .umpire-arm-right .umpire-elbow{transform:rotate(110deg)}}
+
+/* Quiet, sequential wicket lettering. No impact explosions or flashing lights. */
+.broadcast-wicket-letter { animation:wicket-letter-reveal calc(var(--highlight-duration) * .23) calc(var(--highlight-duration) * (.08 + var(--beat) * .12)) both; }
+.broadcast-wicket-glint { animation:wicket-glint calc(var(--highlight-duration) * .32) calc(var(--highlight-duration) * (.43 + var(--beat) * .035)) both; }
+.tv-highlight--hat_chance .broadcast-lights,.tv-highlight--hat_trick .broadcast-lights { background:radial-gradient(ellipse at 50% 40%,#e9bd6020,transparent 65%); animation:none; }
+.tv-highlight--hat_chance .tv-highlight-sweep,.tv-highlight--hat_trick .tv-highlight-sweep { display:none; }
+@keyframes wicket-letter-reveal { from{opacity:0;transform:translateY(24px) scale(.94)} 75%{opacity:1;transform:translateY(-3px) scale(1.015)} to{opacity:1;transform:none} }
+@keyframes wicket-glint { from{opacity:0;transform:scale(.5) rotate(-15deg)} 40%{opacity:.8;transform:scale(1) rotate(0)} to{opacity:0;transform:scale(.7) rotate(15deg)} }
+.tv-highlight[data-motion=reduced] .broadcast-wicket-glints {display:none}
+@media(prefers-reduced-motion:reduce){.broadcast-wicket-glints{display:none}}

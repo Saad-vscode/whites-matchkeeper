@@ -38,6 +38,8 @@ export interface Rules {
   noBallRuns: number; // base penalty for a no ball
   lastManBats: boolean;
   maxOversPerBowler: number | null;
+  /** Explicit innings wicket cap; null keeps the historic players-per-side default. */
+  maxWickets?: number | null;
 }
 
 export const DEFAULT_RULES: Rules = {
@@ -45,6 +47,7 @@ export const DEFAULT_RULES: Rules = {
   noBallRuns: 1,
   lastManBats: false,
   maxOversPerBowler: null,
+  maxWickets: null,
 };
 
 export interface MatchConfig {
@@ -63,6 +66,10 @@ export function normalizeRules(raw: unknown): Rules {
     maxOversPerBowler:
       r.maxOversPerBowler != null && Number(r.maxOversPerBowler) > 0
         ? Number(r.maxOversPerBowler)
+        : null,
+    maxWickets:
+      r.maxWickets != null && Number.isFinite(Number(r.maxWickets))
+        ? Math.max(1, Math.floor(Number(r.maxWickets)))
         : null,
   };
 }
@@ -130,8 +137,16 @@ export interface InningsState {
   endReason: "overs" | "all_out" | "target" | null;
 }
 
-export const maxWickets = (cfg: MatchConfig) =>
-  cfg.rules.lastManBats ? cfg.playersPerTeam : cfg.playersPerTeam - 1;
+export const maxWickets = (cfg: MatchConfig) => {
+  const standardLimit = cfg.playersPerTeam - 1;
+  const configuredLimit = cfg.rules.maxWickets;
+  const limit = configuredLimit == null
+    ? (cfg.rules.lastManBats ? cfg.playersPerTeam : standardLimit)
+    : cfg.rules.lastManBats && configuredLimit === standardLimit
+      ? cfg.playersPerTeam
+      : configuredLimit;
+  return Math.max(1, Math.min(cfg.playersPerTeam, limit));
+};
 
 export function computeInnings(deliveries: Delivery[], cfg: MatchConfig, target: number | null): InningsState {
   const sorted = [...deliveries].sort((a, b) => a.seq - b.seq);
@@ -223,7 +238,7 @@ export function computeInnings(deliveries: Delivery[], cfg: MatchConfig, target:
   }
 
   // Last-man batting: a lone batter keeps strike.
-  if (cfg.rules.lastManBats && s.wickets === cfg.playersPerTeam - 1) {
+  if (cfg.rules.lastManBats && maxWickets(cfg) > cfg.playersPerTeam - 1 && s.wickets === cfg.playersPerTeam - 1) {
     const alone = s.next.striker ?? s.next.nonStriker;
     s.next.striker = alone;
     s.next.nonStriker = null;

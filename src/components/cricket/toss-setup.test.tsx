@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { matchFixture } from "@/test/tournament-fixtures";
 import { replay } from "@/lib/cricket/offline";
+vi.mock("@/lib/cricket/tournament-branding", () => ({ useTournamentBranding: () => ({ data: null }) }));
 const state = vi.hoisted(() => ({ supported: true }));
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: state.supported }) }));
 vi.mock("@tanstack/react-router", () => ({

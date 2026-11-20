@@ -1,0 +1,45 @@
+.dismissal-flight-trail { stroke-dasharray:1; animation:dismissal-trail var(--highlight-duration) both; }
+.keeper-incoming-ball { animation:keeper-delivery var(--highlight-duration) linear both; }
+.keeper-hands { animation:keeper-hands var(--highlight-duration) both; }
+.keeper-connected-arms { animation:keeper-connected var(--highlight-duration) both; }
+.dismissal-held-ball { animation:dismissal-hold var(--highlight-duration) both; }
+.keeper-bail { transform-box:fill-box; transform-origin:center; }
+.keeper-bail-left { animation:keeper-bail-left var(--highlight-duration) both; }
+.keeper-bail-right { animation:keeper-bail-right var(--highlight-duration) both; }
+.keeper-contact-glow { transform-origin:500px 218px; animation:keeper-contact var(--highlight-duration) both; }
+.catch-fielder { animation:catch-reach var(--highlight-duration) both; }
+.catch-hands { animation:catch-hands var(--highlight-duration) both; }
+.catch-connected-arms { animation:catch-connected var(--highlight-duration) both; }
+.catch-incoming-ball { animation:catch-delivery var(--highlight-duration) linear both; }
+.catch-contact-glow { transform-origin:500px 95px; animation:catch-contact var(--highlight-duration) both; }
+.tv-highlight--caught .tv-highlight-caption,.tv-highlight--stumped .tv-highlight-caption { animation-delay:calc(var(--highlight-duration) * .53); }
+.tv-highlight--caught .tv-highlight-caption span,.tv-highlight--stumped .tv-highlight-caption span { max-width:90%; letter-spacing:.1em; text-align:center; overflow-wrap:anywhere; }
+@keyframes keeper-delivery { 0%{transform:translate(80px,180px);opacity:0} 8%{opacity:1} 30%{transform:translate(540px,205px);opacity:1} 31%,100%{transform:translate(540px,205px);opacity:0} }
+
+@keyframes dismissal-hold { 0%,30%{opacity:0} 31%,100%{opacity:1} }
+@keyframes dismissal-trail { 0%{stroke-dashoffset:1;opacity:0} 8%{opacity:.6} 30%{stroke-dashoffset:0;opacity:.4} 40%,100%{stroke-dashoffset:-1;opacity:0} }
+@keyframes keeper-bail-left { 0%,51%{transform:none;opacity:1} 78%,100%{transform:translate(-85px,-65px) rotate(-150deg);opacity:0} }
+@keyframes keeper-bail-right { 0%,51%{transform:none;opacity:1} 78%,100%{transform:translate(75px,-80px) rotate(170deg);opacity:0} }
+@keyframes keeper-contact { 0%,50%{opacity:0;transform:scale(.5)} 54%{opacity:.8} 74%,100%{opacity:0;transform:scale(2.7)} }
+@keyframes catch-reach { 0%{transform:translate(-45px,10px)} 30%,40%{transform:translate(0,-30px)} 66%,100%{transform:translate(0,0)} }
+
+@keyframes catch-delivery { 0%{transform:translate(100px,40px);opacity:0} 8%{opacity:1} 15%{transform:translate(300px,22px)} 30%{transform:translate(500px,95px);opacity:1} 31%,100%{transform:translate(500px,95px);opacity:0} }
+@keyframes catch-contact { 0%,29%{opacity:0;transform:scale(.5)} 33%{opacity:.8} 52%,100%{opacity:0;transform:scale(2.8)} }
+.tv-highlight[data-motion=reduced] .keeper-incoming-ball,.tv-highlight[data-motion=reduced] .catch-incoming-ball,.tv-highlight[data-motion=reduced] .dismissal-flight-trail,.tv-highlight[data-motion=reduced] .keeper-contact-glow,.tv-highlight[data-motion=reduced] .catch-contact-glow {display:none}
+
+.tv-highlight[data-motion=reduced] .keeper-bail {opacity:0}
+@media(prefers-reduced-motion:reduce){.keeper-incoming-ball,.catch-incoming-ball,.dismissal-flight-trail,.keeper-contact-glow,.catch-contact-glow{display:none}.keeper-bail{opacity:0}}
+
+/* Shoulder endpoints stay fixed; only elbows and wrists change position. */
+@keyframes keeper-hands { 0%,30%{transform:translate(-140px,35px)} 38%{transform:translate(-132px,40px)} 52%,72%{transform:translate(-180px,48px)} 100%{transform:translate(-160px,35px)} }
+@keyframes keeper-connected {
+  0%,30%{d:path("M-16 52-75 52-126 37M25 56-38 63-130 43")}
+  38%{d:path("M-16 52-70 57-118 42M25 56-34 68-122 48")}
+  52%,72%{d:path("M-16 52-95 67-166 50M25 56-65 82-170 56")}
+  100%{d:path("M-16 52-85 52-146 37M25 56-51 63-150 43")}
+}
+@keyframes catch-hands { 0%,40%{transform:translate(0,-75px)} 66%,100%{transform:translate(0,-45px)} }
+@keyframes catch-connected { 0%,40%{d:path("M-34 42-55-18-18-59M34 42 55-18 18-59")} 66%,100%{d:path("M-34 42-55 0-18-29M34 42 55 0 18-29")} }
+/* Dedicated art area above the caption prevents equipment and text collisions. */
+.tv-highlight--wicket .tv-highlight-art,.tv-highlight--caught .tv-highlight-art,.tv-highlight--stumped .tv-highlight-art {height:76%;top:0;overflow:hidden}
+.tv-highlight--wicket .tv-highlight-caption,.tv-highlight--caught .tv-highlight-caption,.tv-highlight--stumped .tv-highlight-caption {bottom:0;}

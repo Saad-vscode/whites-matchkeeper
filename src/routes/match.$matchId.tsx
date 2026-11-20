@@ -1,4 +1,5 @@
 import { TournamentName } from "@/components/cricket/tournament-name";
+import { SpectatorLiveStats } from "@/components/cricket/spectator-live-stats";
 import { MatchAward } from "@/components/cricket/match-award";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -19,7 +20,6 @@ import {
 } from "@/lib/cricket/engine";
 import {
   battingSide,
-  getLive,
   teamName,
   useLiveMatch,
   type Derived,
@@ -110,7 +110,7 @@ function Spectator() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <ConnBadge conn={conn} lastUpdated={lastUpdated} />
           </div>
-          <LiveHeader match={match} d={d} />
+          <LiveHeader match={match} d={d} deliveries={deliveries} />
           <MatchAward match={match} deliveries={deliveries} />
           {match.toss_winner && (
             <>
@@ -146,8 +146,7 @@ function Spectator() {
   );
 }
 
-function LiveHeader({ match, d }: { match: MatchRow; d: Derived }) {
-  const live = getLive(match);
+function LiveHeader({ match, d, deliveries }: { match: MatchRow; d: Derived; deliveries: Delivery[] }) {
   const s = d.current;
   return (
     <section className="rounded-2xl border border-border bg-white p-5 text-foreground shadow-sm sm:p-7">
@@ -178,22 +177,7 @@ function LiveHeader({ match, d }: { match: MatchRow; d: Derived }) {
               <span className="text-sm text-muted-foreground">/ {d.cfg.overs} ov</span>
             </div>
           </div>
-          <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <span>CRR {runRate(s.runs, s.legalBalls, d.cfg.ballsPerOver).toFixed(2)}</span>
-            {d.target != null && !d.result && (
-              <span>
-                Need {Math.max(0, d.target - s.runs)} off{" "}
-                {d.cfg.overs * d.cfg.ballsPerOver - s.legalBalls}
-              </span>
-            )}
-          </div>
-          {match.status !== "completed" && !d.result && (
-            <div className="mt-2 text-sm">
-              {live.striker && <span className="mr-4">● {live.striker}</span>}
-              {live.nonStriker && <span className="mr-4">{live.nonStriker}</span>}
-              {live.bowler && <span className="text-muted-foreground">Bowler: {live.bowler}</span>}
-            </div>
-          )}
+          <SpectatorLiveStats match={match} d={d} deliveries={deliveries} />
           <div className="mt-3 flex flex-wrap gap-1.5">
             {s.currentOver.map((b) => (
               <BallChip key={b.id} d={b} />

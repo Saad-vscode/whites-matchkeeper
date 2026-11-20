@@ -1,10 +1,12 @@
 import { computeInnings, creditsBowler, isLegal, normalizeRules, type Delivery } from "./engine";
-import type { MatchRow } from "./match";
+import { battingSide, teamName, type MatchRow } from "./match";
 
 export const HIGHLIGHTS = {
   four: "Four",
   six: "Six",
   wicket: "Wicket",
+  stumped: "Stumped!",
+  caught: "Caught!",
   triple_six: "Six! Six! Six!",
   run_out: "Run out!",
   duck: "Duck! 0",
@@ -25,8 +27,16 @@ export type TvHighlight = {
   player: string;
   detail: string;
   dots?: number;
+  team?: string;
 };
 export const HIGHLIGHT_DURATION = 2800;
+
+/** One enabled scene per delivery; secondary achievements are text only. */
+export const HIGHLIGHT_PRIORITY: Record<HighlightKind, number> = {
+  winning_six: 1, winning_four: 1, hat_trick: 2, triple_six: 3,
+  fifty: 4, golden_duck: 5, duck: 6, run_out: 7, caught: 7, stumped: 7, wicket: 8,
+  hat_chance: 9, six: 10, four: 10, no_ball: 11, wide: 11, maiden: 12,
+};
 
 /** Candidates are ordered so one meaningful moment replaces overlapping celebrations. */
 export function highlightCandidates(
@@ -35,7 +45,12 @@ export function highlightCandidates(
   match?: MatchRow,
 ): TvHighlight[] {
   const basic = highlightFor(ball);
-  if (!match) return basic ? [basic] : [];
+  const dismissal = ball.wicket;
+  const specific: TvHighlight | null = dismissal && (dismissal.kind === "caught" || dismissal.kind === "stumped")
+    ? { id: ball.id, kind: dismissal.kind, player: dismissal.playerOut,
+        detail: dismissal.fielder?.trim() ? `${dismissal.kind === "caught" ? "Caught" : "Stumped"} by ${dismissal.fielder.trim()}` : dismissal.kind === "caught" ? "Safe hands" : "Quick hands. Bails off." }
+    : null;
+  if (!match) return [...(specific ? [specific] : []), ...(basic ? [basic] : [])];
   const cfg = {
     overs: match.overs,
     ballsPerOver: match.balls_per_over,
@@ -71,6 +86,10 @@ export function highlightCandidates(
       ball.striker,
       ball.runs_bat === 6 ? "That seals the match!" : "What a finish!",
     );
+  if (result[0]?.kind.startsWith("winning_")) {
+    const side = battingSide(match, ball.innings);
+    if (side) result[0].team = teamName(match, side);
+  }
   // Consecutive deliveries by this bowler, across overs but never across innings.
   const bowlerBalls = innings.filter(
     (b) => b.bowler === ball.bowler && (isLegal(b) || creditsBowler(b.wicket)),
@@ -121,11 +140,12 @@ export function highlightCandidates(
     if (over.every((b) => b.bowler === ball.bowler) && overState.bowlers.every((b) => b.runs === 0))
       add("maiden", ball.bowler, "No runs conceded", cfg.ballsPerOver);
   }
+  if (specific) result.push(specific);
   if (basic?.kind === "wicket") result.push(basic);
   if (ball.extra_type === "noball") add("no_ball", ball.bowler, "Illegal delivery");
   if (ball.extra_type === "wide") add("wide", ball.bowler, "Extra conceded");
   if (basic && basic.kind !== "wicket") result.push(basic);
-  return result;
+  return result.sort((a, b) => HIGHLIGHT_PRIORITY[a.kind] - HIGHLIGHT_PRIORITY[b.kind]);
 }
 
 export function selectHighlight(
@@ -134,7 +154,17 @@ export function selectHighlight(
   match?: MatchRow,
   enabled?: Partial<Record<HighlightKind, boolean>>,
 ) {
-  return highlightCandidates(ball, balls, match).find((h) => enabled?.[h.kind] !== false) ?? null;
+  const candidates = highlightCandidates(ball, balls, match).filter(h => enabled?.[h.kind] !== false);
+  const chosen = candidates[0];
+  if (!chosen) return null;
+  const has = (kind: HighlightKind) => candidates.some(h => h.kind === kind);
+  // Do not announce disabled achievements or queue extra scenes for the same ball.
+  const supporting = chosen.kind === "fifty" && (has("four") || has("six"))
+    ? `Reached with a ${has("six") ? "SIX" : "FOUR"}`
+    : ["golden_duck", "duck", "run_out", "caught", "stumped", "wicket"].includes(chosen.kind)
+      ? [has("hat_chance") ? `${ball.bowler} on a hat-trick` : "", has("maiden") ? "Maiden over" : ""].filter(Boolean).join(" · ")
+      : "";
+  return supporting ? { ...chosen, detail: supporting } : chosen;
 }
 
 export function highlightFor(ball: Delivery): TvHighlight | null {

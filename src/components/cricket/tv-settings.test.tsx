@@ -1,3 +1,5 @@
+const featureState = vi.hoisted(() => ({ restricted: false }));
+vi.mock("@/lib/feature-access", async (original) => { const module = await original<typeof import("@/lib/feature-access")>(); const access = module.allFeatures(true); return { ...module, useFeatureAccess: () => ({ allows: () => !featureState.restricted, access }) }; });
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { ComponentType } from "react";
@@ -8,6 +10,7 @@ import { Route } from "@/routes/settings";
 import { readAnimationSettings } from "@/lib/cricket/tv-settings";
 const Settings=Route.options.component as ComponentType;
 beforeEach(()=>{
+  featureState.restricted = false;
   const values = new Map<string,string>();
   vi.stubGlobal("localStorage", {
     getItem: (key:string)=>values.get(key) ?? null,
@@ -17,6 +20,12 @@ beforeEach(()=>{
   });
 });
 afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.useRealTimers()});
+it("inherits legacy wicket opt-outs for new dismissals but respects explicit choices",()=>{
+  localStorage.setItem("crease-tv-animations",JSON.stringify({events:{wicket:false}}));
+  expect(readAnimationSettings().events).toMatchObject({caught:false,stumped:false});
+  localStorage.setItem("crease-tv-animations",JSON.stringify({events:{wicket:false,caught:true}}));
+  expect(readAnimationSettings().events).toMatchObject({caught:true,stumped:false});
+});
 it("persists individual choices and receives changes from another TV tab",()=>{
   render(<Settings/>);
   fireEvent.click(screen.getByRole("checkbox",{name:/^Four /}));
@@ -41,4 +50,17 @@ it("recovers safe defaults from corrupt stored preferences",()=>{
   expect(readAnimationSettings().duration).toBe(2800);
   localStorage.setItem("crease-tv-animations",JSON.stringify({duration:90000,motion:"unknown",events:{four:false}}));
   expect(readAnimationSettings()).toMatchObject({duration:2800,motion:"full",events:{four:false,six:true}});
+});
+
+it("hides restricted settings and restores the saved selections", () => {
+ const view = render(<Settings />);
+ fireEvent.click(screen.getByRole("checkbox", { name: /^Four / }));
+ featureState.restricted = true;
+ view.rerender(<Settings />);
+ expect(screen.queryByRole("checkbox", { name: "Enable match animations" })).toBeNull();
+ expect(screen.queryByRole("combobox", { name: "Color theme" })).toBeNull();
+ expect(screen.queryByText("Victory celebrations & tournament honours")).toBeNull();
+ featureState.restricted = false;
+ view.rerender(<Settings />);
+ expect(screen.getByRole("checkbox", { name: /^Four / })).not.toBeChecked();
 });

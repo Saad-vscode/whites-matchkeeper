@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, GitBranch, Pencil, Trophy } from "lucide-react";
@@ -29,6 +29,7 @@ function BracketConnections({
   draw: PlayoffDraw;
 }) {
   const [paths, setPaths] = useState<{ d: string; loser: boolean }[]>([]);
+  const markerId = useId().replace(/:/g, "");
   const signature = JSON.stringify(draw.nodes);
   useEffect(() => {
     const graph = graphRef.current;
@@ -43,21 +44,28 @@ function BracketConnections({
         );
       const next: { d: string; loser: boolean }[] = [];
       for (const node of draw.nodes)
-        for (const slot of [node.a, node.b]) {
+        for (const [index, slot] of [node.a, node.b].entries()) {
           if (!slot || !("from" in slot)) continue;
           const a = cards.get(slot.from),
             b = cards.get(node.id);
           if (!a || !b) continue;
+          const targetRow = graph.querySelector<HTMLElement>(`[data-bracket-node="${node.id}"] [data-bracket-slot="${index}"]`)?.getBoundingClientRect();
           const x1 = a.right - bounds.left,
             y1 = a.top + a.height / 2 - bounds.top,
             x2 = b.left - bounds.left,
-            y2 = b.top + b.height / 2 - bounds.top;
+            y2 = draw.format === "ipl" && targetRow
+              ? targetRow.top + targetRow.height / 2 - bounds.top
+              : b.top + b.height / 2 - bounds.top;
           // Qualifier 1's direct route to the final travels above Qualifier 2.
           const skip = node.round - (draw.nodes.find((n) => n.id === slot.from)?.round ?? 0) > 1;
           const mid = (x1 + x2) / 2;
           next.push({
             loser: slot.result === "loser",
-            d: skip
+            d: draw.format === "ipl" && skip
+              ? `M${x1},${y1 - 12} H${x2 - 30} Q${x2 - 18},${y1 - 12} ${x2 - 18},${y1} V${y2 - 12} Q${x2 - 18},${y2} ${x2 - 6},${y2} H${x2 - 2}`
+              : draw.format === "ipl"
+                ? `M${x1},${y1} H${mid - 12} Q${mid},${y1} ${mid},${y1 + (y2 > y1 ? 12 : -12)} V${y2 + (y2 > y1 ? -12 : 12)} Q${mid},${y2} ${mid + 12},${y2} H${x2 - 2}`
+              : skip
               ? `M${x1},${y1} H${x1 + 18} V5 H${x2 - 18} V${y2} H${x2}`
               : `M${x1},${y1} H${mid} V${y2} H${x2}`,
           });
@@ -76,12 +84,23 @@ function BracketConnections({
       className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
       fill="none"
     >
+      <defs>
+        <marker id={`${markerId}-winner`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M1 1 9 5 1 9" fill="none" stroke="#399c90" strokeWidth="1.5" />
+        </marker>
+        <marker id={`${markerId}-loser`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M1 1 9 5 1 9" fill="none" stroke="#b88b35" strokeWidth="1.5" />
+        </marker>
+      </defs>
       {paths.map((p, i) => (
         <path
           key={i}
           d={p.d}
-          stroke={p.loser ? "#d4a34a" : "#8bc9c1"}
+          stroke={p.loser ? "#b88b35" : "#399c90"}
           strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          markerEnd={draw.format === "ipl" ? `url(#${markerId}-${p.loser ? "loser" : "winner"})` : undefined}
           strokeDasharray={p.loser ? "5 4" : undefined}
         />
       ))}
@@ -144,23 +163,23 @@ function PlayoffContent({
       ]),
     ),
   );
-  const initialSeeds = () =>
-    separateGroupOpponents(
+  const initialSeeds = (drawFormat: "ipl" | "single") => {
+    const ranked =
       Array.from({ length: Math.max(...Object.values(counts)) }, (_, rank) =>
         groups.flatMap((g) =>
           rank < (counts[g.id] ?? 0) && g.rows[rank] ? [g.rows[rank]!.teamId] : [],
         ),
-      ).flat(),
-      ctx.groups,
-    );
-  const [seeds, setSeeds] = useState(() => ctx.playoff?.draw.seeds ?? initialSeeds());
+      ).flat();
+    return drawFormat === "ipl" ? ranked : separateGroupOpponents(ranked, ctx.groups);
+  };
   const [format, setFormat] = useState<"ipl" | "single">(
     () =>
       ctx.playoff?.draw.format ??
-      (groups.length === 1 && ctx.tournament.competition_format !== "knockout" && seeds.length === 4
+      (groups.length <= 2 && ctx.tournament.competition_format !== "knockout" && Object.values(counts).reduce((sum, count) => sum + count, 0) === 4
         ? "ipl"
         : "single"),
   );
+  const [seeds, setSeeds] = useState(() => ctx.playoff?.draw.seeds ?? initialSeeds(format));
   const [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(null);
   const [decision, setDecision] = useState<{ node: string; team: string; reason: string } | null>(
@@ -309,7 +328,7 @@ function PlayoffContent({
           <Button
             variant="outline"
             onClick={() => {
-              setSeeds(initialSeeds());
+              setSeeds(initialSeeds(format));
               setError(null);
             }}
           >
@@ -318,6 +337,7 @@ function PlayoffContent({
           <label className="block max-w-sm space-y-2 text-sm font-medium">
             <span className="block">Playoff format</span>
             <select
+              aria-label="Playoff format"
               className={selectClass}
               value={format}
               onChange={(e) => setFormat(e.target.value as "ipl" | "single")}
@@ -354,9 +374,10 @@ function PlayoffContent({
             ))}
           </div>
           <p className="text-xs text-slate-500">
-            Two-group default: A1 vs B2 and B1 vs A2. For other group counts, review the seeded
-            pairings below and swap teams as needed. Equal standings remain subject to organiser
-            review.
+            {format === "ipl"
+              ? "Qualifier 1: seeds 1 vs 2. Eliminator: seeds 3 vs 4. With two groups, use A1, B1, A2, B2; with one league, use the top four in standings order. Qualifier 1's winner goes directly to the final. Its loser plays the Eliminator winner in Qualifier 2 for the other final place."
+              : "Two-group knockout: A1 vs B2 and B1 vs A2. For other group counts, review the seeded pairings below and swap teams as needed."}
+            {" "}Equal standings remain subject to organiser review.
           </p>
           {validation && (
             <p role="alert" className="text-sm text-red-700">
@@ -397,9 +418,19 @@ function PlayoffContent({
           className="overflow-x-auto rounded-2xl border border-slate-200 bg-gradient-to-br from-teal-50/60 via-white to-white p-5 sm:p-6"
           aria-label="Playoff bracket"
         >
-          <div ref={graphRef} className="relative flex min-w-max items-stretch gap-12 pt-4">
+          <div ref={graphRef} className={shown?.format === "ipl"
+            ? "relative grid min-w-max grid-cols-[260px_260px_260px] grid-rows-[1fr_auto_1fr] items-center gap-x-20 gap-y-6 py-6"
+            : "relative flex min-w-max items-stretch gap-12 pt-4"}>
             {shown && <BracketConnections graphRef={graphRef} draw={shown} />}
-            {[...new Set(states.map((s) => s.node.round))].map((round) => (
+            {shown?.format === "ipl" ? states.map((s) => (
+              <div key={s.node.id} style={{
+                gridColumn: s.node.id === "final" ? 3 : s.node.id === "q2" ? 2 : 1,
+                gridRow: s.node.id === "q1" ? 1 : s.node.id === "eliminator" ? 3 : 2,
+              }}>
+                <BracketCard state={s} ctx={ctx} draw={shown} canDecide={canManage && !configuring}
+                  onDecide={() => setDecision({ node: s.node.id, team: s.a ?? "", reason: "" })} />
+              </div>
+            )) : [...new Set(states.map((s) => s.node.round))].map((round) => (
               <div key={round} className="flex w-[260px] flex-col">
                 <h3 className="mb-5 border-b border-teal-100 pb-3 text-xs font-bold uppercase tracking-wider text-teal-700">
                   {states.filter((s) => s.node.round === round).length === 1 &&
@@ -426,7 +457,7 @@ function PlayoffContent({
               </div>
             ))}
             {champion && (
-              <div className="flex w-48 flex-col justify-center text-center">
+              <div className={`flex w-48 flex-col justify-center text-center ${shown?.format === "ipl" ? "col-start-3 row-start-3 justify-self-center" : ""}`}>
                 <div className="mx-auto rounded-full bg-amber-50 p-5">
                   <Trophy size={38} className="text-amber-600" />
                 </div>
@@ -439,6 +470,10 @@ function PlayoffContent({
               </div>
             )}
           </div>
+          {shown?.format === "ipl" && <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-500">
+            <span className="flex items-center gap-2"><span className="w-7 border-t-2 border-teal-600" />Winner advances</span>
+            <span className="flex items-center gap-2"><span className="w-7 border-t-2 border-dashed border-amber-600" />Qualifier 1 loser gets a second chance</span>
+          </div>}
         </div>
       )}
       {states.length > 0 && (
@@ -546,6 +581,7 @@ function BracketCard({
         return (
           <div
             key={i}
+            data-bracket-slot={i}
             className={`flex min-h-16 items-center gap-2 px-4 py-3 ${won ? "bg-teal-50/70" : ""}`}
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50 text-xs font-bold text-teal-700">

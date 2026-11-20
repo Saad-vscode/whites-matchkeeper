@@ -21,6 +21,7 @@ export default defineConfig({
         globPatterns: ["**/*.{js,css,png,jpg,svg,woff2}"],
         navigateFallback: null,
         runtimeCaching: [
+          { urlPattern: ({ request, url }) => request.mode === "navigate" && /^\/(?:admin|accept-invite)(?:\/|$)/.test(url.pathname), handler: "NetworkOnly" },
           { urlPattern: ({ request, url }) => request.mode === "navigate" && !url.pathname.startsWith("/~oauth"), handler: "NetworkFirst", options: { cacheName: "crease-navigation", networkTimeoutSeconds: 5, expiration: { maxEntries: 30 } } },
           { urlPattern: ({ url }) => url.origin === self.location.origin && /\/assets\/.*-[\w-]+\.(js|css|png|jpg|woff2)$/.test(url.pathname), handler: "CacheFirst", options: { cacheName: "crease-assets", expiration: { maxEntries: 100 } } },
         ],

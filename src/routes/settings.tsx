@@ -1,3 +1,5 @@
+import { globalDefault, GLOBAL_CONFIGURATION_EVENT } from '@/lib/global-settings';
+import { useFeatureAccess, animationFeature } from "@/lib/feature-access";
 import { useEffect, useState } from "react";
 import { MatchAudio } from "@/components/cricket/match-audio";
 import { PresentationSettings } from "@/components/cricket/presentation-settings";
@@ -24,7 +26,7 @@ const groups: { name: string; keys: HighlightKind[] }[] = [
     name: "Boundaries & milestones",
     keys: ["four", "six", "triple_six", "fifty", "winning_four", "winning_six"],
   },
-  { name: "Wickets & reactions", keys: ["wicket", "run_out", "duck", "golden_duck"] },
+  { name: "Wickets & reactions", keys: ["wicket", "stumped", "caught", "run_out", "duck", "golden_duck"] },
   { name: "Bowling moments", keys: ["wide", "no_ball", "hat_chance", "hat_trick", "maiden"] },
 ];
 const descriptions: Record<HighlightKind, string> = {
@@ -35,6 +37,8 @@ const descriptions: Record<HighlightKind, string> = {
   winning_four: "A boundary that completes a successful chase.",
   winning_six: "A six that seals the chase.",
   wicket: "Three stumps, a ball impact, and flying bails.",
+  stumped: "Quick wicketkeeping gloves remove the bails.",
+  caught: "An athletic reach and a clean two-handed catch.",
   run_out: "A diving batter just short of the crease.",
   duck: "A little sympathy for a score of zero.",
   golden_duck: "A golden duck for a first-ball dismissal.",
@@ -52,6 +56,8 @@ const subtitles: Record<HighlightKind, string> = {
   winning_four: "What a finish!",
   winning_six: "That seals the match!",
   wicket: "Bowled",
+  stumped: "Quick hands. Bails off.",
+  caught: "Safe hands",
   run_out: "Just short of safety",
   duck: "Out without scoring",
   golden_duck: "First ball dismissal",
@@ -63,6 +69,8 @@ const subtitles: Record<HighlightKind, string> = {
 };
 
 function SettingsPage() {
+  const { allows } = useFeatureAccess();
+  const animationsAllowed = allows("boundaries") || allows("wickets") || allows("moments");
   const [category, setCategory] = useState(0);
   const settings = useAnimationSettings();
   const [theme, setTheme] = useState("teal"),
@@ -70,11 +78,14 @@ function SettingsPage() {
     [error, setError] = useState("");
   const [preview, setPreview] = useState<TvHighlight | null>(null);
   useEffect(() => {
-    try {
+    const refresh = () => { try {
       const style = JSON.parse(localStorage.getItem("crease-tv-style") ?? "{}");
-      if (["teal", "blue", "violet", "night"].includes(style.theme)) setTheme(style.theme);
+      if (["teal", "blue", "violet", "night"].includes(style.theme)) setTheme(style.theme); else setTheme(globalDefault("tv_theme", "teal"));
       if (["modern", "system", "classic"].includes(style.font)) setFont(style.font);
-    } catch {}
+    } catch {} };
+    refresh();
+    window.addEventListener(GLOBAL_CONFIGURATION_EVENT, refresh);
+    return () => window.removeEventListener(GLOBAL_CONFIGURATION_EVENT, refresh);
   }, []);
   useEffect(() => {
     if (!preview) return;
@@ -136,7 +147,7 @@ function SettingsPage() {
         )}
         <MatchAudio settings />
         <PresentationSettings />
-        <section className="rounded-2xl border border-border bg-white p-6">
+        {allows("appearance") && <section className="rounded-2xl border border-border bg-white p-6">
           <h2 className="text-xl font-bold">Display style</h2>
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             <label className="grid gap-2 text-sm font-semibold">
@@ -165,8 +176,8 @@ function SettingsPage() {
               </select>
             </label>
           </div>
-        </section>
-        <section className="rounded-2xl border border-border bg-white p-6">
+        </section>}
+        {animationsAllowed && <section className="rounded-2xl border border-border bg-white p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold">Match animations</h2>
@@ -217,13 +228,13 @@ function SettingsPage() {
             Your device’s reduced-motion preference is respected. Special milestones take priority
             over standard highlights for the same ball. Previews never change a match.
           </p>
-        </section>
-        <nav aria-label="Animation categories" className="flex gap-2 rounded-xl border border-border bg-card p-2">{["Batting","Wickets","Bowling"].map((label,i)=><button type="button" key={label} aria-pressed={category===i} onClick={()=>setCategory(i)} className={`flex-1 rounded-lg px-3 py-3 text-sm font-semibold ${category===i?"bg-primary text-primary-foreground":"text-muted-foreground hover:bg-muted"}`}>{label}</button>)}</nav>
-        {groups.filter((_,i)=>i===category).map((group) => (
+        </section>}
+        {animationsAllowed && <nav aria-label="Animation categories" className="flex gap-2 rounded-xl border border-border bg-card p-2">{["Batting","Wickets","Bowling"].map((label,i)=><button type="button" key={label} aria-pressed={category===i} onClick={()=>setCategory(i)} className={`flex-1 rounded-lg px-3 py-3 text-sm font-semibold ${category===i?"bg-primary text-primary-foreground":"text-muted-foreground hover:bg-muted"}`}>{label}</button>)}</nav>}
+        {groups.filter((group,i)=>i===category && group.keys.some(key => allows(animationFeature(key)))).map((group) => (
           <section key={group.name} className="rounded-2xl border border-border bg-white p-6">
             <h2 className="mb-4 text-xl font-bold">{group.name}</h2>
             <div className="divide-y divide-border">
-              {group.keys.map((key) => (
+              {group.keys.filter(key => allows(animationFeature(key))).map((key) => (
                 <div key={key} className="flex items-center justify-between gap-4 py-4">
                   <label className="flex flex-1 cursor-pointer items-start gap-3">
                     <input
@@ -258,7 +269,7 @@ function SettingsPage() {
             </div>
           </section>
         ))}
-        <Dialog open={!!preview} onOpenChange={open=>{if(!open)setPreview(null)}}>
+        <Dialog open={!!preview && allows(animationFeature(preview.kind))} onOpenChange={open=>{if(!open)setPreview(null)}}>
         {preview && (
           <DialogContent
             className="tournament-page scoring-page tv-page tv-broadcast [&>button]:z-[70] [&>button]:text-white"

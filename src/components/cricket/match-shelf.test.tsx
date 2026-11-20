@@ -42,3 +42,4 @@ it("pages four matches at a time and returns to the previous set", () => {
   fireEvent.click(screen.getByLabelText("Previous Upcoming Matches page"));
   expect(screen.getAllByRole("article")).toHaveLength(4);
 });
+vi.mock("@/lib/cricket/tournament-branding", () => ({ useTournamentBranding: () => ({ data: null }) }));

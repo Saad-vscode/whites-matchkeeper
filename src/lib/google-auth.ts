@@ -1,4 +1,3 @@
-
 import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -6,16 +5,11 @@ export async function signInWithGoogle() {
   const redirectTo = new URL("/dashboard", window.location.origin).href;
   const hostname = window.location.hostname;
 
-  // Keep Google login disabled in local development.
-  if (["localhost", "127.0.0.1", "[::1]"].includes(hostname)) {
-    return {
-      error: new Error("Google sign-in is unavailable in local preview."),
-      redirected: false,
-    };
-  }
-
-  // Use Supabase OAuth on Vercel.
-  if (hostname.endsWith(".vercel.app")) {
+  // Loopback development uses the same Supabase project as the deployed app.
+  // The current origin (including port) must be on that project's redirect allowlist.
+  const isLoopback = ["localhost", "127.0.0.1", "[::1]"].includes(hostname);
+  // Preserve the existing Vercel flow and Lovable-hosted broker below.
+  if (isLoopback || hostname.endsWith(".vercel.app")) {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -25,7 +19,7 @@ export async function signInWithGoogle() {
 
     return {
       error,
-      redirected: Boolean(data?.url),
+      redirected: !error && Boolean(data?.url),
     };
   }
 

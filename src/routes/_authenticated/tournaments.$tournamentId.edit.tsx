@@ -16,6 +16,7 @@ function EditTournament() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["tournament-edit", tournamentId, user.id],
+    refetchInterval: 5000,
     queryFn: async () => {
       const [t, permission] = await Promise.all([
         supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
@@ -45,6 +46,8 @@ function EditTournament() {
           <p role="status">Loading…</p>
         ) : error ? (
           <p role="alert">Could not load tournament: {error.message}</p>
+        ) : data?.t.platform_disabled || data?.t.platform_archived ? (
+          <p role="alert">This tournament is disabled or archived and read-only. Contact platform administration to restore editing.</p>
         ) : !data?.allowed ? (
           <p role="alert">Only the tournament owner can edit this tournament.</p>
         ) : (

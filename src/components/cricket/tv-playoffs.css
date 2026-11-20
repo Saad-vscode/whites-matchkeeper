@@ -275,3 +275,15 @@
     padding: 0.5vh 1.5vw;
   }
 }
+
+/* Championship finish: team identity framed by a restrained gold laurel. */
+.tv-champions { gap: 1.1vh; padding: 3vh 5vw; background: radial-gradient(ellipse at 50% 42%, #d7b65712, transparent 65%); }
+.tv-champion-crest { position: relative; width: min(34vw, 36vh); height: 23vh; display: grid; place-items: center; color: var(--primary); flex-shrink: 0; }
+.tv-champion-laurels { position: absolute; width: 100%; height: 100%; }
+.tv-champion-crest::before { content: ''; position: absolute; width: 15vh; height: 15vh; border: 1px solid color-mix(in srgb, var(--primary) 40%, transparent); border-radius: 50%; box-shadow: 0 0 50px #efc66a15, inset 0 0 35px #efc66a10; }
+.tv-champion-crest .tv-champions-trophy { width: 9vh; height: 9vh; stroke-width: 1.3; }
+.tv-champion-crest .tv-champion-logo { position: relative; width: 12vh; height: 12vh; border-radius: 50%; padding: .8vh; }
+.tv-champions .tv-champions-title { font-size: clamp(22px, 5.2vh, 80px); letter-spacing: .24em; text-indent: .24em; }
+.tv-champions h1 { font-size: clamp(36px, min(8vw, 10vh), 150px); text-wrap: balance; max-width: 85%; }
+.tv-champions .tv-champions-event { letter-spacing: .12em; font-size: clamp(14px, 2.8vh, 40px); }
+.tv-champions .tv-runner { margin-top: 2.5vh; padding: 1.5vh 4vw; border-block: 1px solid color-mix(in srgb, var(--primary) 22%, transparent); font-size: clamp(14px, 2.4vh, 34px); }

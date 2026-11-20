@@ -24,6 +24,15 @@
   max-width: 95%;
   animation: victory-reveal 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
+.victory-hero,
+.victory-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6vh;
+  min-width: 0;
+  max-width: 100%;
+}
 .victory-kicker {
   display: flex;
   align-items: center;
@@ -213,25 +222,145 @@
     display: none;
   }
 }
-.victory-brand {
-  width: 7vh;
-  height: 7vh;
-  object-fit: contain;
-  border-radius: 1vh;
-  background: white;
-  padding: 0.5vh;
-}
-.tv-victory[data-level="match"] .victory-confetti,
-.tv-victory[data-level="match"] .victory-kicker,
-.tv-victory[data-level="match"] .victory-halo {
+.tv-victory[data-level="match"] .victory-confetti {
   display: none;
 }
-.tv-victory[data-level="match"] .victory-emblem {
-  width: 10vh;
-  height: 10vh;
-}
 .tv-victory[data-level="match"] .victory-content {
+  width: min(88vw, 160vh);
+  gap: clamp(20px, 5vh, 64px);
+  padding: 3vh 0;
+}
+.tv-victory[data-level="match"] .victory-kicker {
+  width: 100%;
+  justify-content: center;
+  font-size: clamp(12px, 1.8vh, 24px);
+  letter-spacing: .28em;
+}
+.tv-victory[data-level="match"] .victory-kicker::before,
+.tv-victory[data-level="match"] .victory-kicker::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary) 45%, transparent));
+}
+.tv-victory[data-level="match"] .victory-kicker::after {
+  transform: rotate(180deg);
+}
+.tv-victory[data-level="match"] .victory-kicker svg {
+  display: none;
+}
+.tv-victory[data-level="match"] .victory-hero {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.7fr);
+  align-items: center;
+  gap: 5vw;
+}
+.tv-victory[data-level="match"] .victory-emblem {
+  justify-self: center;
+  width: min(24vw, 29vh);
+  height: min(24vw, 29vh);
+  border-radius: 50%;
+  padding: 3vh;
+  background: radial-gradient(circle, color-mix(in srgb, var(--primary) 10%, var(--background)), var(--background));
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  box-shadow: 0 0 0 1.4vh color-mix(in srgb, var(--primary) 3%, transparent), 0 0 8vh color-mix(in srgb, var(--primary) 9%, transparent);
+}
+.tv-victory[data-level="match"] .victory-emblem::before {
+  content: "";
+  position: absolute;
+  inset: -2.6vh;
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+}
+.tv-victory[data-level="match"] .victory-emblem > img {
+  background: transparent;
+  border-radius: 20%;
+  padding: 0;
+}
+.tv-victory[data-level="match"] .victory-mini-trophy {
+  bottom: -1vh;
+  right: 0;
+  width: 8vh;
+  height: 8vh;
+  padding: 1.6vh;
+  border-radius: 50%;
+  border: 1px solid var(--primary);
+  background: var(--background);
+}
+.tv-victory[data-level="match"] .victory-identity {
+  align-items: flex-start;
+  text-align: left;
   gap: 2vh;
+  border-left: 1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+  padding-left: 4vw;
+}
+.tv-victory[data-level="match"] .victory-title {
+  max-width: 100%;
+  font-size: clamp(20px, 4.3vh, 60px);
+  letter-spacing: .25em;
+  line-height: 1.2;
+}
+.tv-victory[data-level="match"] .victory-tournament {
+  max-width: 100%;
+  margin: 1.3vh 0 0;
+  font-size: clamp(14px, 2.2vh, 32px);
+  color: var(--muted-foreground);
+}
+.tv-victory[data-level="match"] h1 {
+  font-size: clamp(38px, 12vh, 160px);
+  letter-spacing: -.045em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.tv-victory[data-level="match"] h1[data-long="true"] {
+  font-size: clamp(30px, 7vh, 100px);
+}
+.tv-victory[data-level="match"] .victory-result {
+  overflow-wrap: anywhere;
+  font-size: clamp(18px, 3.4vh, 46px);
+  line-height: 1.35;
+  color: var(--foreground);
+  text-wrap: balance;
+}
+.tv-victory[data-level="match"] .victory-award {
+  border-radius: 0;
+  border-width: 1px 0 0;
+  background: transparent;
+  width: 100%;
+  justify-content: center;
+  padding: 2.5vh 2vw 0;
+  margin: 0;
+}
+.tv-victory[data-level="match"] .victory-rule {
+  width: 100%;
+  height: 1px;
+  margin: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary) 45%, transparent), transparent);
+}
+.tv-victory[data-level="match"]:has(.victory-award) .victory-rule {
+  display: none;
+}
+@media (max-aspect-ratio: 1/1) {
+  .tv-victory[data-level="match"] .victory-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4vh;
+  }
+  .tv-victory[data-level="match"] .victory-emblem {
+    width: 19vh;
+    height: 19vh;
+  }
+  .tv-victory[data-level="match"] .victory-identity {
+    align-items: center;
+    text-align: center;
+    border: 0;
+    padding: 0;
+  }
+  .tv-victory[data-level="match"] h1 {
+    font-size: clamp(32px, 8vh, 100px);
+  }
 }
 .tv-victory[data-level="playoff"] .victory-content {
   border-left: 3px solid var(--primary);

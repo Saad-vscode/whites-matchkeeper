@@ -5,13 +5,16 @@ import { Link } from "@tanstack/react-router";
 import type { tournamentSummary } from "@/lib/cricket/tournament-summary";
 type Summary = ReturnType<typeof tournamentSummary>;
 export function TournamentStatistics({
+  awardsAllowed = true,
   summary,
   renderCard,
 }: {
+  awardsAllowed?: boolean;
   summary: Summary;
   renderCard: (stat: Summary["leaders"][number]) => ReactNode;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selection, setSelected] = useState<string | null>(null);
+  const selected = selection === "mvp" && !awardsAllowed ? null : selection;
   const board = summary.leaderboards.find((b) => b.id === selected);
   const partnership = summary.partnerships[0];
   return (
@@ -20,7 +23,7 @@ export function TournamentStatistics({
         <>
           <h2 className="sr-only">Tournament statistics</h2>
           <div className="grid grid-cols-2 gap-5 sm:gap-8 lg:grid-cols-3">
-            {summary.leaders.map((stat) => (
+            {summary.leaders.filter(stat => awardsAllowed || stat.id !== "mvp").map((stat) => (
               <button
                 key={stat.id}
                 onClick={() => setSelected(stat.id)}
@@ -67,7 +70,7 @@ export function TournamentStatistics({
               onChange={(e) => setSelected(e.target.value)}
               className="max-w-full rounded-xl border border-input bg-white px-3 py-2 text-sm"
             >
-              {summary.leaderboards.map((b) => (
+              {summary.leaderboards.filter(stat => awardsAllowed || stat.id !== "mvp").map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.label}
                 </option>

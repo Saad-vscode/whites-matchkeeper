@@ -1,3 +1,4 @@
+import { globalDefault } from './global-settings';
 import { useEffect, useState } from "react";
 export const PRESENTATION_EVENT = "crease-presentation-settings";
 export const defaults = {
@@ -16,7 +17,16 @@ export const defaults = {
 };
 export type PresentationSettings = typeof defaults;
 export function readPresentation(): PresentationSettings {
-  const next = { ...defaults };
+  const next = { ...defaults,
+    celebration: globalDefault('celebration', defaults.celebration),
+    duration: globalDefault('celebration_duration', defaults.duration),
+    style: globalDefault('celebration_style', defaults.style),
+    honoursSeconds: globalDefault('honours_seconds', defaults.honoursSeconds),
+    honoursRuns: globalDefault('honours_runs', defaults.honoursRuns),
+    honoursWickets: globalDefault('honours_wickets', defaults.honoursWickets),
+    honoursPlayer: globalDefault('honours_player', defaults.honoursPlayer),
+    honoursMatches: globalDefault('honours_matches', defaults.honoursMatches),
+  };
   try {
     const s = JSON.parse(localStorage.getItem("crease-presentation") ?? "{}");
     for (const [key, options] of Object.entries({

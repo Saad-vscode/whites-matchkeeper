@@ -1,9 +1,13 @@
+import { globalDefault, GLOBAL_CONFIGURATION_EVENT } from '@/lib/global-settings';
+import { useFeatureAccess } from "@/lib/feature-access";
 import { useEffect, useRef, useState } from "react";
 import { Volume2, Square, Upload, Music2, RotateCcw, Clock3, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AUDIO_EVENT, AUDIO_KEY, AUDIO_SECONDS, localTrack } from "@/lib/cricket/match-audio";
 
 export function MatchAudio({ settings = false }: { settings?: boolean }) {
+  const { allows } = useFeatureAccess();
+  const permitted = allows("sound");
   const [enabled, setEnabled] = useState(false),
     [name, setName] = useState("");
   const [ready, setReady] = useState(false),
@@ -13,6 +17,11 @@ export function MatchAudio({ settings = false }: { settings?: boolean }) {
   const fileInput = useRef<HTMLInputElement | null>(null);
   const player = useRef<HTMLAudioElement | null>(null),
     timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    const update = () => { if (localStorage.getItem(AUDIO_KEY) === null) setEnabled(globalDefault('sound', false)); };
+    window.addEventListener(GLOBAL_CONFIGURATION_EVENT, update);
+    return () => window.removeEventListener(GLOBAL_CONFIGURATION_EVENT, update);
+  }, []);
   const generation = useRef(0);
   const stop = () => {
     generation.current++;
@@ -33,7 +42,7 @@ export function MatchAudio({ settings = false }: { settings?: boolean }) {
       stop();
       setReady(false);
       try {
-        setEnabled(localStorage.getItem(AUDIO_KEY) === "true");
+        setEnabled(localStorage.getItem(AUDIO_KEY) === null ? globalDefault("sound", false) : localStorage.getItem(AUDIO_KEY) === "true");
         const file = await localTrack();
         if (disposed || current !== revision) return;
         if (url) URL.revokeObjectURL(url);
@@ -72,8 +81,9 @@ export function MatchAudio({ settings = false }: { settings?: boolean }) {
       window.removeEventListener("pagehide", stop);
     };
   }, []);
+  useEffect(() => { if (!permitted) stop(); }, [permitted]);
   const play = async () => {
-    if (!player.current || !ready || !enabled) return;
+    if (!permitted || !player.current || !ready || !enabled) return;
     stop();
     setError("");
     const id = generation.current;
@@ -106,6 +116,7 @@ export function MatchAudio({ settings = false }: { settings?: boolean }) {
       setError("Could not save the audio on this device. Check available browser storage.");
     }
   };
+  if (!permitted) return null;
   const controls = (
     <div className="flex flex-wrap items-center gap-2">
       <Button

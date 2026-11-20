@@ -1,3 +1,4 @@
+import { useFeatureAccess } from "@/lib/feature-access";
 import { useEffect, useState } from "react";
 import { Palette, Sparkles, Sun, Moon, Monitor, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { TvVictory } from "./tv-victory";
 
 export function PresentationSettings() {
   const s = usePresentation();
+  const { allows } = useFeatureAccess();
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<"match" | "playoff" | "final" | null>(null);
   const update = (part: Partial<Preferences>) => {
@@ -110,11 +112,11 @@ export function PresentationSettings() {
           ])}
         </div>
       </section>
-      <details className="space-y-5 rounded-2xl border border-border bg-card p-6">
+      {(allows("celebrations") || allows("honours")) && <details className="space-y-5 rounded-2xl border border-border bg-card p-6">
         <summary className="cursor-pointer text-xl font-bold">
           Victory celebrations & tournament honours
         </summary>
-        <div className="flex items-center justify-between gap-4">
+        {allows("celebrations") && <><div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="flex items-center gap-2 text-xl font-bold">
               <Sparkles className="text-primary" size={22} />
@@ -162,7 +164,8 @@ export function PresentationSettings() {
           Silent celebrations. Published Man of the Match awards replay the presentation. Your
           device’s reduced-motion preference is respected.
         </p>
-        <label className="grid max-w-xs gap-2 text-sm font-semibold">
+        </>}
+        {allows("honours") && <><label className="grid max-w-xs gap-2 text-sm font-semibold">
           Honours screen duration
           <select
             className="rounded-lg border border-input bg-background p-3"
@@ -186,7 +189,7 @@ export function PresentationSettings() {
                 ["honoursPlayer", "Player of the Tournament"],
                 ["honoursMatches", "Man of the Match awards"],
               ] as const
-            ).map(([key, label]) => (
+            ).filter(([key]) => allows("awards") || !["honoursPlayer", "honoursMatches"].includes(key)).map(([key, label]) => (
               <label
                 key={key}
                 className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm font-semibold"
@@ -202,19 +205,20 @@ export function PresentationSettings() {
             ))}
           </div>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Choose on the TV browser. Man of the Match includes published semi-final and final
-            awards. These switches only change the honours presentation, not award calculations.
+            Choose on the TV browser. Man of the Match follows the draw: qualifiers, Eliminator and final for IPL playoffs; semi-finals and final for knockout playoffs.
+            Only published awards reveal winners. These switches only change the honours presentation, not award calculations.
             With all awards off, champions and runners-up keep looping.
           </p>
         </fieldset>
-      </details>
+        </>}
+      </details>}
       {error && (
         <p role="alert" className="text-destructive">
           {error}
         </p>
       )}
       <Dialog
-        open={!!preview}
+        open={!!preview && allows("celebrations")}
         onOpenChange={(open) => {
           if (!open) setPreview(null);
         }}

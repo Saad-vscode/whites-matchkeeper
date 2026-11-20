@@ -465,3 +465,25 @@ html[data-app-font="modern"] .tournament-page:not(.tv-page) { font-family:var(--
 html[data-app-mode="dark"] .front-page { background:var(--background); }
 html[data-app-mode="dark"] .front-page > header,html[data-app-mode="dark"] :is(.match-preview,.auth-panel) { background:var(--card); }
 html[data-app-mode="dark"] .front-hero { background:linear-gradient(120deg,var(--muted),var(--card) 68%);border-color:var(--border); }
+
+/* Shared surfaces, including portalled dialogs, must follow app appearance. */
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is([class*="bg-white/"], [class*="bg-slate-50"], [class*="bg-slate-100"], [class*="bg-gray-50"], [class*="bg-gray-100"]) { background-color: var(--card); }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is([class*="bg-teal-50"], [class*="bg-teal-100"]) { background-color: var(--accent); }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is([class*="bg-amber-50"], [class*="bg-amber-100"]) { background-color: #352e20; color: #ecd39b; }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is([class*="bg-red-50"], [class*="bg-red-100"]) { background-color: #392329; color: #ffbdc4; }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is(.bg-gradient-to-br,.bg-gradient-to-r) { background-image: linear-gradient(135deg,var(--accent),var(--card) 70%); }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is(.text-slate-400,.text-slate-500,.text-slate-600,.text-gray-500,.text-gray-600) { color: var(--muted-foreground); }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is(.text-slate-700,.text-slate-800,.text-gray-700,.text-gray-800) { color: var(--foreground); }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is(.text-teal-600,.text-teal-700,.text-teal-800) { color: var(--primary); }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is(.text-amber-600,.text-amber-700,.text-amber-800,.text-amber-900) { color: #ecd39b; }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is(.text-red-600,.text-red-700,.text-red-800) { color: #ffabb5; }
+html[data-app-mode="dark"] .tournament-page:not(.tv-page) :is([class*="border-slate-"],[class*="border-gray-"],[class*="border-teal-"],[class*="border-amber-"]) { border-color: var(--border); }
+html[data-app-mode="dark"][data-app-accent="blue"], html[data-app-mode="dark"][data-app-accent="blue"] .tournament-page:not(.tv-page) { --primary:#8ab9f5; --primary-foreground:#102236; --ring:#8ab9f5; }
+html[data-app-mode="dark"][data-app-accent="violet"], html[data-app-mode="dark"][data-app-accent="violet"] .tournament-page:not(.tv-page) { --primary:#c0a3ef; --primary-foreground:#241633; --ring:#c0a3ef; }
+html[data-app-font="modern"] .tournament-page:not(.tv-page) :is(h1,h2,h3,[role="dialog"],[role="alertdialog"]) { font-family:var(--font-sans); }
+/* Fullscreen is the clean audience view; Escape restores the operator controls. */
+:fullscreen .tv-broadcast button,
+:fullscreen .tv-broadcast section[aria-label="Display options"] { display: none !important; }
+@media (display-mode: fullscreen) {
+  .tv-broadcast button, .tv-broadcast section[aria-label="Display options"] { display: none !important; }
+}

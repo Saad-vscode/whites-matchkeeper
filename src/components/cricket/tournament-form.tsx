@@ -1,3 +1,4 @@
+import { useFeatureAccess } from "@/lib/feature-access";
 import { useRef, useState } from "react";
 import { Loader2, Upload, X } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -10,6 +11,7 @@ import { NumField } from "@/components/cricket/num-field";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { maxWickets as inningsWicketLimit, normalizeRules } from "@/lib/cricket/engine";
 type Tournament = Database["public"]["Tables"]["tournaments"]["Row"];
 
 export function TournamentForm({
@@ -21,6 +23,7 @@ export function TournamentForm({
   onSaved?: () => Promise<void>;
   onCancel?: () => void;
 }) {
+  const { allows } = useFeatureAccess({ tournament: tournament?.id });
   const navigate = useNavigate();
   // SELECT * reflects the deployed schema, including legacy databases.
   const supportsDetails = !tournament || "competition_format" in tournament;
@@ -37,6 +40,13 @@ export function TournamentForm({
     overs: tournament?.overs ?? 20,
     bpo: tournament?.balls_per_over ?? 6,
     players: tournament?.players_per_team ?? 11,
+    maxWickets:
+      tournament?.rules &&
+      typeof tournament.rules === "object" &&
+      !Array.isArray(tournament.rules) &&
+      Number.isInteger(tournament.rules["maxWickets"])
+        ? Math.min(tournament?.players_per_team ?? 11, Number(tournament.rules["maxWickets"]))
+        : null,
     wideRuns: typeof rules["wideRuns"] === "number" ? rules["wideRuns"] : 1,
     noBallRuns: typeof rules["noBallRuns"] === "number" ? rules["noBallRuns"] : 1,
     lastManBats: rules["lastManBats"] === true,
@@ -116,9 +126,9 @@ export function TournamentForm({
       const values = {
         name: f.name.trim(),
         short_name: f.short.trim() || null,
-        primary_color: f.primary,
-        accent_color: f.accent,
-        logo_url: f.logo.trim() || null,
+        primary_color: allows("branding") ? f.primary : tournament?.primary_color ?? "#1f4d3a",
+        accent_color: allows("branding") ? f.accent : tournament?.accent_color ?? "#c8a24a",
+        logo_url: allows("branding") ? f.logo.trim() || null : tournament?.logo_url ?? null,
         overs: f.overs,
         balls_per_over: f.bpo,
         players_per_team: f.players,
@@ -128,6 +138,7 @@ export function TournamentForm({
           noBallRuns: f.noBallRuns,
           lastManBats: f.lastManBats,
           maxOversPerBowler: f.maxOvers ? Number(f.maxOvers) : null,
+          ...(f.maxWickets == null ? {} : { maxWickets: f.maxWickets }),
         },
         points_win: f.win,
         points_tie: f.tie,
@@ -200,7 +211,7 @@ export function TournamentForm({
                 placeholder="CPL"
               />
             </F>
-            <div className="space-y-1.5">
+            {allows("branding") && <div className="space-y-1.5">
               <Label htmlFor="upload-tournament-logo">
                 Logo image <span className="font-normal text-muted-foreground">(optional)</span>
               </Label>
@@ -264,9 +275,9 @@ export function TournamentForm({
                   </div>
                 )}
               </div>
-            </div>
+            </div>}
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          {allows("branding") && <div className="grid grid-cols-2 gap-3">
             <F label="Main colour">
               <Input
                 type="color"
@@ -281,7 +292,7 @@ export function TournamentForm({
                 onChange={(e) => set("accent", e.target.value)}
               />
             </F>
-          </div>
+          </div>}
         </Sec>
         {!supportsDetails && (
           <p className="text-sm text-muted-foreground">
@@ -344,11 +355,43 @@ export function TournamentForm({
               their settings.
             </p>
           )}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <F label="Overs">{num("overs", 1, 100)}</F>
             <F label="Balls / over">{num("bpo", 1, 12)}</F>
-            <F label="Players / side">{num("players", 2, 15)}</F>
+            <F label="Players / side">
+              <NumField
+                min={2}
+                max={15}
+                value={f.players}
+                onChange={(v) => setF((p) => ({
+                  ...p,
+                  players: v,
+                  maxWickets: p.maxWickets == null ? null : Math.min(p.maxWickets, v),
+                }))}
+              />
+            </F>
+            <F label="Max wickets / side">
+              <NumField
+                min={1}
+                max={f.players}
+              value={inningsWicketLimit({
+                overs: f.overs,
+                ballsPerOver: f.bpo,
+                playersPerTeam: f.players,
+                rules: normalizeRules({
+                  ...rules,
+                  lastManBats: f.lastManBats,
+                  maxWickets: f.maxWickets,
+                }),
+              })}
+                onChange={(v) => set("maxWickets", v)}
+              />
+            </F>
           </div>
+          <p className="-mt-1 text-xs text-muted-foreground">
+            Sets the all-out limit independently of squad size. Last man bats adds one wicket only
+            at the standard players-per-side limit; a lower custom cap stays fixed.
+          </p>
           <div className="grid grid-cols-3 gap-3">
             <F label="Wide runs">{num("wideRuns", 0, 5)}</F>
             <F label="No-ball runs">{num("noBallRuns", 0, 5)}</F>
