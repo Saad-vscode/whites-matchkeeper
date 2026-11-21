@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { signInWithGoogle } from "@/lib/google-auth";
@@ -10,6 +10,14 @@ import { SiteHeader } from "@/components/cricket/bits";
 import { globalDefault } from '@/lib/global-settings';
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
+  beforeLoad: async () => {
+    // Verify with Auth, rather than trusting a possibly stale cached session.
+    const verified = await supabase.auth.getUser().catch(() => null);
+    if (verified && !verified.error && verified.data.user) {
+      throw redirect({ to: "/dashboard", replace: true });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Sign in — Crease" },

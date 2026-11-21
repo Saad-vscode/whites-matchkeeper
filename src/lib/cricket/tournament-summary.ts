@@ -12,6 +12,7 @@ export interface TournamentPlayer {
   team: string;
   runs: number;
   wickets: number;
+  directRunOuts: number;
   fours: number;
   sixes: number;
   highest: number;
@@ -56,8 +57,9 @@ export const compareWickets = (a: TournamentPlayer, b: TournamentPlayer) =>
 export const compareMvp = (a: TournamentPlayer, b: TournamentPlayer) =>
   b.points - a.points ||
   b.points / Math.max(1, b.matches) - a.points / Math.max(1, a.matches) ||
+  b.runs - a.runs ||
   b.wickets - a.wickets ||
-  b.runs - a.runs;
+  b.directRunOuts - a.directRunOuts;
 
 /** Read-only aggregation of engine output; no calculated totals are persisted. */
 export function tournamentSummary(
@@ -87,6 +89,7 @@ export function tournamentSummary(
         team: teams.find((t) => t.id === id)?.name ?? (side === "A" ? m.team_a : m.team_b),
         runs: 0,
         wickets: 0,
+        directRunOuts: 0,
         fours: 0,
         sixes: 0,
         highest: 0,
@@ -144,7 +147,7 @@ export function tournamentSummary(
           const sr = b.balls ? (b.runs / b.balls) * 100 : 0;
           const bonus =
             b.balls >= 5 && b.runs >= 10 ? (sr >= 250 ? 8 : sr >= 200 ? 5 : sr >= 150 ? 3 : 0) : 0;
-          p.battingPoints += b.runs + bonus;
+          p.battingPoints += b.runs * 2 + bonus;
         }
         const bowlingSide = side === "A" ? "B" : "A";
         for (const b of state.bowlers) {
@@ -158,7 +161,7 @@ export function tournamentSummary(
           p.bowlingOvers += b.balls / m.balls_per_over;
           const er = b.balls ? (b.runs / b.balls) * m.balls_per_over : Infinity;
           const bonus = b.balls >= m.balls_per_over ? (er <= 6 ? 8 : er <= 9 ? 5 : 0) : 0;
-          p.bowlingPoints += b.wickets * 15 + bonus;
+          p.bowlingPoints += b.wickets * 10 + bonus;
           if (
             !p.best ||
             b.wickets > p.best.wickets ||
@@ -182,12 +185,15 @@ export function tournamentSummary(
         for (const d of ds) {
           const w = d.wicket;
           if (!w) continue;
-          if (w.kind === "caught" || w.kind === "stumped") field(w.fielder, 5, d);
+          if (w.kind === "caught" || w.kind === "stumped") field(w.fielder, 3, d);
           if (w.kind === "run_out") {
-            if (w.runOutType === "direct") field(w.fielder, 10, d);
+            if (w.runOutType === "direct") {
+              field(w.fielder, 8, d);
+              if (w.fielder) getPlayer(m, bowlingSide, w.fielder).directRunOuts++;
+            }
             else if (w.runOutType === "assisted") {
-              field(w.fielder, 5, d);
-              if (w.assistedBy && w.assistedBy !== w.fielder) field(w.assistedBy, 5, d);
+              field(w.fielder, 4, d);
+              if (w.assistedBy && w.assistedBy !== w.fielder) field(w.assistedBy, 4, d);
             } else issue(d, "Run-out type missing");
           }
         }

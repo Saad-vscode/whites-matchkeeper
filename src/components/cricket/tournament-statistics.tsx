@@ -86,7 +86,7 @@ export function TournamentStatistics({
           {selected === "mvp" && (
             <>
               <p className="mt-3 text-sm text-muted-foreground">
-                The leading MVP becomes Player of the Series when the tournament finishes.
+                The leading eligible MVP becomes Player of the Series when the tournament finishes.
                 Live-match points are provisional.
               </p>
               {summary.uncreditedFielding > 0 && (
@@ -101,21 +101,34 @@ export function TournamentStatistics({
               <details className="mt-4 rounded-xl border border-border p-4 text-sm">
                 <summary className="cursor-pointer font-semibold">MVP points</summary>
                 <div className="mt-3 space-y-2 text-muted-foreground">
+                  <p>Batting, bowling and fielding points are added together for both Man of the Match and tournament MVP. Points are recalculated from recorded deliveries.</p>
+                  <ul className="list-disc space-y-1 pl-5">
+                    <li>Each run scored: 2 points.</li>
+                    <li>Each bowler wicket: 10 points. Run-outs do not count as bowler wickets.</li>
+                    <li>Direct-hit run-out: 8 points, only to the recorded fielder who directly breaks the wicket.</li>
+                    <li>Assisted run-out: 4 points per recorded fielder, limited to two distinct fielders per dismissal (8 points maximum).</li>
+                    <li>Catch: 3 points. Stumping: 3 points.</li>
+                  </ul>
                   <p>
-                    Run: 1 · Wicket: 15 · Catch: 5 · Direct run-out: 10 · Assisted run-out: 5 per
-                    recorded fielder · Stumping: 5.
+                    Batting bonus per innings, with at least 5 balls faced and 10 runs scored:
+                    strike rate 150 to below 200 earns +3, 200 to below 250 earns +5, and 250+ earns +8.
+                    Below 150 earns no bonus.
                   </p>
                   <p>
-                    Per innings: at least 5 balls and 10 runs unlock strike-rate bonuses of 3
-                    (150–199.99), 5 (200–249.99), or 8 (250+).
+                    Bowling bonus per innings, with at least one complete match-format over bowled:
+                    economy 6.00 or below earns +8, above 6.00 through 9.00 earns +5, and above 9.00 earns 0.
+                    Economy is runs conceded divided by legal balls, multiplied by the match's balls per over.
+                  </p>
+                  <p>Example: 15 runs with a +8 strike-rate bonus earns 38 points; 2 wickets with a +8 economy bonus earns 28 points.</p>
+                  <p>
+                    Highest total points wins. Equal totals are settled by points per match, then runs scored,
+                    then wickets taken, then direct run-outs. An exact remaining tie is shared.
+                    Match squads count as appearances once a delivery is recorded.
                   </p>
                   <p>
-                    At least one match-format over unlocks economy bonuses: 8 at 6 or below, 5 above
-                    6 through 9. Bonus economy uses runs conceded ÷ legal balls × match balls per over. Series awards require selection beyond the group stage.
-                  </p>
-                  <p>
-                    Ties: points per match, then wickets, then runs. Match squads count as
-                    appearances once a delivery is recorded. An exact remaining tie is shared.
+                    Player of the Series eligibility is unchanged: a player's team must reach a non-cancelled
+                    qualifying or knockout fixture. Group-stage-only players remain in the MVP rankings but
+                    cannot win the series award, even if they lead on points. There is no separate minimum-appearance threshold.
                   </p>
                 </div>
               </details>

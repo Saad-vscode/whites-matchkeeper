@@ -13,6 +13,7 @@ const line = (patch: Partial<TournamentPlayer> = {}): TournamentPlayer => ({
   team: "A",
   runs: 20,
   wickets: 2,
+  directRunOuts: 0,
   fours: 0,
   sixes: 0,
   highest: 20,
@@ -46,10 +47,12 @@ describe("tournament ranking rules", () => {
     expect(compareWickets(line({ conceded: 5, bowlingOvers: 1 }), line())).toBeLessThan(0);
     expect(compareWickets(line(), line({ bowlingInnings: 2 }))).toBeLessThan(0);
   });
-  it("applies points per match, wickets, runs, then keeps an exact MVP tie", () => {
+  it("applies points per match, runs, wickets, direct run-outs, then keeps an exact MVP tie", () => {
     expect(compareMvp(line(), line({ matches: 2 }))).toBeLessThan(0);
     expect(compareMvp(line({ wickets: 3 }), line())).toBeLessThan(0);
     expect(compareMvp(line({ runs: 21 }), line())).toBeLessThan(0);
+    expect(compareMvp(line({ runs: 21 }), line({ wickets: 3 }))).toBeLessThan(0);
+    expect(compareMvp(line({ directRunOuts: 1 }), line())).toBeLessThan(0);
     expect(compareMvp(line(), line())).toBe(0);
   });
   it.each([
@@ -67,7 +70,7 @@ describe("tournament ranking rules", () => {
     const p = tournamentSummary([match()], ds, []).players.find(
       (p) => p.teamId === "a" && p.name === "Alex",
     )!;
-    expect(p.battingPoints).toBe(runs + bonus);
+    expect(p.battingPoints).toBe(runs * 2 + bonus);
   });
   it("calculates bonuses per match, not from aggregate strike rate", () => {
     const s = tournamentSummary(
@@ -75,7 +78,7 @@ describe("tournament ranking rules", () => {
       [...innings("match", [2, 2, 2, 2, 2]), ...innings("m2", [0, 0, 0, 0, 0, 0])],
       [],
     );
-    expect(s.players.find((p) => p.teamId === "a" && p.name === "Alex")?.battingPoints).toBe(15);
+    expect(s.players.find((p) => p.teamId === "a" && p.name === "Alex")?.battingPoints).toBe(25);
   });
   it.each([
     [6, 6, 8],
@@ -125,10 +128,10 @@ describe("tournament ranking rules", () => {
     const s = tournamentSummary([match()], ds, []);
     const points = (name: string) =>
       s.players.find((p) => p.teamId === "b" && p.name === name)?.fieldingPoints;
-    expect(points("Catch")).toBe(5);
-    expect(points("Direct")).toBe(10);
-    expect(points("Throw")).toBe(5);
-    expect(points("Keeper")).toBe(10);
+    expect(points("Catch")).toBe(3);
+    expect(points("Direct")).toBe(8);
+    expect(points("Throw")).toBe(4);
+    expect(points("Keeper")).toBe(7);
     expect(s.uncreditedFielding).toBe(1);
     expect(s.players.find((p) => p.teamId === "b" && p.name === "Alex")?.wickets).toBe(2);
   });
@@ -159,7 +162,7 @@ describe("tournament ranking rules", () => {
       [],
     );
     const p = s.players.find((p) => p.teamId === "a" && p.name === "Alex")!;
-    expect(p.points).toBe(6);
+    expect(p.points).toBe(12);
     expect(p.matches).toBe(2);
     expect(s.players.find((p) => p.teamId === "a" && p.name === "Sam")?.matches).toBe(2);
   });

@@ -7,14 +7,14 @@ it("uses match-length overs for MOM and series economy bonuses", () => {
   const m = match({ balls_per_over: 4 });
   const ds = [2,2,2,0].map((runs_bat, i) => ball({ id: String(i), seq: i+1, runs_bat, bowler: "Lee" }));
   const award = calculateMatchAward(m, ds);
-  expect(award.winners[0]?.name).toBe("Lee");
-  expect(award.winners[0]?.points).toBe(8);
+  expect(award.winners[0]?.name).toBe("Alex");
+  expect(award.winners[0]?.points).toBe(12);
   expect(tournamentSummary([m], ds, []).players.find(p => p.name === "Lee")?.points).toBe(8);
 });
 it("applies SR bonuses per innings and allows a losing-team player", () => {
   const ds = [3,3,3,3,3].map((runs_bat,i) => ball({ id:String(i), seq:i+1, runs_bat }));
   const award = calculateMatchAward(match(), ds);
-  expect(award.winners[0]).toMatchObject({ name: "Alex", teamId: "a", points: 23 });
+  expect(award.winners[0]).toMatchObject({ name: "Alex", teamId: "a", points: 38 });
 });
 it("credits normal/roof catches once and direct, assisted and stumping credits", () => {
   const ds = [
@@ -24,16 +24,16 @@ it("credits normal/roof catches once and direct, assisted and stumping credits",
     ball({ id:"4", seq:4, wicket:{kind:"run_out",playerOut:"P4",fielder:"Lee",assistedBy:"Pat",runOutType:"assisted"} }),
   ];
   const award = calculateMatchAward(match(),ds);
-  expect(award.players.find(p => p.name === "Lee")?.fieldingPoints).toBe(25);
-  expect(award.players.find(p => p.name === "Pat")?.fieldingPoints).toBe(5);
+  expect(award.players.find(p => p.name === "Lee")?.fieldingPoints).toBe(18);
+  expect(award.players.find(p => p.name === "Pat")?.fieldingPoints).toBe(4);
   expect(award.players.find(p => p.teamId === "b" && p.name === "Alex")?.wickets).toBe(2);
 });
-it("breaks equal points by wickets before runs", () => {
-  const award = calculateMatchAward(match(), [ball({ runs_bat:15, wicket:{kind:"bowled",playerOut:"Alex"}, bowler:"Lee" })]);
-  expect(award.winners[0]?.name).toBe("Lee");
+it("breaks equal points by runs before wickets", () => {
+  const award = calculateMatchAward(match(), [ball({ runs_bat:5, wicket:{kind:"bowled",playerOut:"Alex"}, bowler:"Lee" })]);
+  expect(award.winners[0]?.name).toBe("Alex");
 });
 it("breaks equal points and wickets by runs", () => {
-  const award = calculateMatchAward(match(), [ball({ runs_bat:5, wicket:{kind:"run_out",playerOut:"Sam",runOutType:"assisted",fielder:"Lee"} })]);
+  const award = calculateMatchAward(match(), [ball({ runs_bat:2, wicket:{kind:"run_out",playerOut:"Sam",runOutType:"assisted",fielder:"Lee"} })]);
   expect(award.winners[0]).toMatchObject({name:"Alex",teamId:"a"});
 });
 it("keeps exact ties shared rather than choosing by name", () => {
@@ -58,4 +58,23 @@ it("excludes group-eliminated players and ordinary matches from series eligibili
   expect(tournamentSummary([group,advanced,{...playoff,team_a_players:[],rules:{tournamentStage:{kind:"other",title:"Semi Final 1"}}}],ds,[]).seriesPlayers[0]?.teamId).toBe("qualified");
   expect(tournamentSummary([group,advanced,{...playoff,status:"cancelled"}],ds,[]).seriesPlayers).toEqual([]);
   expect(tournamentSummary([group,advanced,{...playoff,rules:{tournamentStage:{kind:"other",title:"Match"}}}],ds,[]).seriesPlayers).toEqual([]);
+});
+
+it("breaks equal points, runs and wickets by direct run-outs", () => {
+  const award = calculateMatchAward(match(), [
+    ball({ id: "d", seq: 1, wicket: { kind: "run_out", playerOut: "Alex", fielder: "Direct", assistedBy: "Ignored", runOutType: "direct" } }),
+    ball({ id: "a1", seq: 2, wicket: { kind: "run_out", playerOut: "Sam", fielder: "Assist", runOutType: "assisted" } }),
+    ball({ id: "a2", seq: 3, wicket: { kind: "run_out", playerOut: "Third", fielder: "Assist", assistedBy: "Assist", runOutType: "assisted" } }),
+  ]);
+  expect(award.winners.map(p => p.name)).toEqual(["Direct"]);
+  expect(award.players.find(p => p.name === "Direct")).toMatchObject({ points: 8, directRunOuts: 1 });
+  expect(award.players.find(p => p.name === "Assist")).toMatchObject({ points: 8, directRunOuts: 0 });
+  expect(award.players.find(p => p.name === "Ignored")).toBeUndefined();
+});
+it("awards 28 points for two wickets and a qualifying economy bonus", () => {
+  const ds = Array.from({ length: 6 }, (_, i) => ball({
+    id: String(i), seq: i + 1, bowler: "Lee",
+    wicket: i < 2 ? { kind: "bowled", playerOut: i === 0 ? "Alex" : "Sam" } : null,
+  }));
+  expect(calculateMatchAward(match(), ds).players.find(p => p.name === "Lee")?.bowlingPoints).toBe(28);
 });

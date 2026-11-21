@@ -28,7 +28,7 @@ it("opens ordered rankings from a card and switches categories", () => {
   expect(rows[1]).toHaveTextContent("Sam");
   fireEvent.change(screen.getByLabelText("Statistic"), { target: { value: "mvp" } });
   expect(screen.getByRole("heading", { name: "MVP" })).toBeInTheDocument();
-  expect(screen.getByText(/Bat 6/)).toBeInTheDocument();
+  expect(screen.getByText(/Bat 12/)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "All statistics" }));
   expect(
     screen.getByRole("button", { name: "View Best Partnership rankings" }),
