@@ -55,3 +55,11 @@ it("updates selections and toss immediately on match state changes", () => {
   expect(screen.getByText("Lions won the toss and elected to bat")).toBeInTheDocument();
   expect(screen.getByText("Lee")).toBeInTheDocument();
 });
+
+it('announces the required Super Over on TV instead of an impossible chase',()=>{
+ const match=matchFixture({overs:1,balls_per_over:1,status:'paused',rules:{playoffNode:'final'},live:{innings:2}});
+ const balls=[deliveryFixture({innings:1}),deliveryFixture({innings:2})];
+ render(<TvScoreboard match={match} d={derive(match,balls)}/>);
+ expect(screen.getByText('Match tied - Super Over required')).toBeInTheDocument();
+ expect(screen.queryByText('RRR')).not.toBeInTheDocument();
+});

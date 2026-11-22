@@ -31,3 +31,12 @@ export function matchStageTitle(rules: Json): string | null {
     return null;
   return stage["kind"] === "group" ? `Group Stage · ${stage["title"]}` : stage["title"];
 }
+
+/** Explicit playoff fixtures only; group-stage ties remain valid results. */
+export function requiresDecider(rules: Json): boolean {
+  if (!rules || typeof rules !== "object" || Array.isArray(rules)) return false;
+  const stage = rules["tournamentStage"];
+  if (stage && typeof stage === "object" && !Array.isArray(stage) && stage["kind"] === "group") return false;
+  return typeof rules["playoffNode"] === "string" ||
+    /^(Qualifier|Eliminator|Knockout|Quarter Final|Semi Final|Final)( \d+)?$/i.test(matchStageTitle(rules) ?? "");
+}

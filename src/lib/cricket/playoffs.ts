@@ -1,5 +1,5 @@
 import type { Tables } from "@/integrations/supabase/types";
-import type { MatchRow } from "./match";
+import { derive, type MatchRow } from "./match";
 import { matchOutcome, standings } from "./tournament";
 import { countsForPoints } from "./match-stage";
 import type { TournamentDelivery } from "./tournament-summary";
@@ -213,7 +213,7 @@ export function resolveDraw(
           status = "conflict";
         else {
           status =
-            match.status === "live"
+            ["live", "paused", "innings_break"].includes(match.status)
               ? "live"
               : match.status === "completed" || match.status === "abandoned"
                 ? "decision"
@@ -225,7 +225,10 @@ export function resolveDraw(
                   deliveries.filter((d) => d.match_id === match.id),
                 )
               : null;
-          if (match.status === "completed" && !outcome) status = "conflict";
+          if (match.status === "completed" && !outcome) {
+            const pending = derive(match, deliveries.filter(d => d.match_id === match.id));
+            status = pending.needsSuperOver || pending.needsDecidingToss ? "live" : "conflict";
+          }
           if (outcome && outcome.winner !== "tie") winner = outcome.winner === "A" ? a : b;
           else if (status === "decision") {
             const d = draw.decisions[node.id];

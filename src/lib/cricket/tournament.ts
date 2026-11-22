@@ -21,16 +21,16 @@ export interface Outcome {
 export function matchOutcome(m: MatchRow, deliveries: Delivery[]): Outcome | null {
   if (!m.toss_winner) return null;
   const d = derive(m, deliveries);
-  if (!d.first.complete || !d.second.complete) return null;
+  if (!d.first.complete || !d.second.complete || !d.winner) return null;
   const s1 = battingSide(m, 1);
   if (!s1) return null;
   const s2 = s1 === "A" ? "B" : "A";
-  const quota = d.cfg.overs * d.cfg.ballsPerOver;
+  const quota = m.overs * m.balls_per_over;
   const balls = (st: typeof d.first) => (st.endReason === "all_out" ? quota : st.legalBalls);
   const out = {} as Outcome;
   out[s1] = { runs: d.first.runs, balls: balls(d.first) };
   out[s2] = { runs: d.second.runs, balls: balls(d.second) };
-  out.winner = d.second.runs > d.first.runs ? s2 : d.first.runs > d.second.runs ? s1 : "tie";
+  out.winner = d.winner;
   out.ballsPerOver = m.balls_per_over;
   return out;
 }

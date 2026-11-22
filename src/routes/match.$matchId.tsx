@@ -166,7 +166,7 @@ function LiveHeader({ match, d, deliveries }: { match: MatchRow; d: Derived; del
       {match.toss_winner ? (
         <>
           <div className="mt-3 text-sm text-muted-foreground">
-            {teamName(match, d.battingSide)} · Innings {d.innings}
+            {teamName(match, d.battingSide)} · {d.innings >= 3 ? `Super Over - Innings ${d.innings - 2}` : `Innings ${d.innings}`}
           </div>
           <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
             <div className="score-num text-5xl tracking-tight text-teal-700 sm:text-6xl">
@@ -205,7 +205,7 @@ type Look = (side: "A" | "B" | null) => {
 function Summary({ match, d, look }: { match: MatchRow; d: Derived; look: Look }) {
   const blocks = [
     { side: battingSide(match, 1), s: d.first },
-    ...(d.innings === 2 || d.second.legalBalls > 0
+    ...(d.innings >= 2 || d.second.legalBalls > 0
       ? [{ side: battingSide(match, 2), s: d.second }]
       : []),
   ];
@@ -216,6 +216,7 @@ function Summary({ match, d, look }: { match: MatchRow; d: Derived; look: Look }
       : null;
   return (
     <div className="space-y-6">
+      {d.innings >= 3 && <section className="rounded-2xl border border-primary/30 bg-primary/5 p-5"><h3 className="font-semibold">Super Over</h3><p className="mt-2">{teamName(match, battingSide(match, 3))}: {d.superFirst.runs}/{d.superFirst.wickets} ({formatOvers(d.superFirst.legalBalls, 6)})</p><p>{teamName(match, battingSide(match, 4))}: {d.superSecond.runs}/{d.superSecond.wickets} ({formatOvers(d.superSecond.legalBalls, 6)})</p><p className="mt-2 text-sm text-muted-foreground">{d.result}</p></section>}
       {blocks.map(({ side, s }) => {
         const bats = [...s.batters]
           .filter((b) => b.balls > 0 || b.runs > 0)
@@ -240,7 +241,7 @@ function Summary({ match, d, look }: { match: MatchRow; d: Derived; look: Look }
               </h2>
               <span className="score-num text-lg text-primary">
                 {s.runs}-{s.wickets}{" "}
-                <span className="text-sm">({formatOvers(s.legalBalls, d.cfg.ballsPerOver)})</span>
+                <span className="text-sm">({formatOvers(s.legalBalls, match.balls_per_over)})</span>
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
@@ -293,6 +294,8 @@ function outText(b: InningsState["batters"][number]) {
   return k;
 }
 
+const matchBpo = (d: Derived) => d.regulationCfg.ballsPerOver;
+
 export function Scorecard({
   match,
   d,
@@ -304,10 +307,10 @@ export function Scorecard({
   inn1: Delivery[];
   inn2: Delivery[];
 }) {
-  const [which, setWhich] = useState<"1" | "2">(d.innings === 2 ? "2" : "1");
-  const s = which === "1" ? d.first : d.second;
-  const ds = which === "1" ? inn1 : inn2;
-  const bpo = d.cfg.ballsPerOver;
+  const [which, setWhich] = useState<"1" | "2" | "3" | "4">(String(d.innings) as "1" | "2" | "3" | "4");
+  const s = which === "1" ? d.first : which === "2" ? d.second : which === "3" ? d.superFirst : d.superSecond;
+  const ds = which === "1" ? inn1 : which === "2" ? inn2 : d.superDeliveries.filter(b => b.innings === Number(which));
+  const bpo = Number(which) >= 3 ? 6 : matchBpo(d);
   const mdn = maidens(ds, bpo);
   const fow = fallOfWickets(ds, bpo);
   const ex = s.extras;
@@ -319,6 +322,7 @@ export function Scorecard({
         options={[
           { id: "1", label: teamName(match, battingSide(match, 1)) },
           { id: "2", label: teamName(match, battingSide(match, 2)) },
+          ...(d.innings >= 3 ? [{ id: "3" as const, label: `Super Over - ${teamName(match, battingSide(match, 3))}` }, { id: "4" as const, label: `Super Over - ${teamName(match, battingSide(match, 4))}` }] : []),
         ]}
       />
       <div className="overflow-x-auto rounded-2xl border border-border p-3 sm:p-5">
@@ -448,11 +452,11 @@ export function Balls({
   n1: string;
   n2: string;
 }) {
-  const [which, setWhich] = useState<"1" | "2">(d.innings === 2 ? "2" : "1");
-  const ds = which === "1" ? inn1 : inn2;
-  const bpo = d.cfg.ballsPerOver;
+  const [which, setWhich] = useState<"1" | "2" | "3" | "4">(String(d.innings) as "1" | "2" | "3" | "4");
+  const ds = which === "1" ? inn1 : which === "2" ? inn2 : d.superDeliveries.filter(b => b.innings === Number(which));
+  const bpo = Number(which) >= 3 ? 6 : matchBpo(d);
   const groups = overGroups(ds, bpo).reverse();
-  const st = which === "1" ? d.first : d.second;
+  const st = which === "1" ? d.first : which === "2" ? d.second : which === "3" ? d.superFirst : d.superSecond;
   return (
     <div className="space-y-4">
       <div className="mx-auto max-w-sm">
@@ -462,6 +466,7 @@ export function Balls({
           options={[
             { id: "1", label: `1st · ${n1}` },
             { id: "2", label: `2nd · ${n2}` },
+            ...(d.innings >= 3 ? [{ id: "3" as const, label: `Super Over - ${n2}` }, { id: "4" as const, label: `Super Over - ${n1}` }] : []),
           ]}
         />
       </div>

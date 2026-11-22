@@ -119,6 +119,7 @@ export type Database = {
           team_b_id: string | null
           team_b_players: string[]
           toss_decision: string | null
+          tie_break_toss_winner: string | null
           toss_winner: string | null
           tournament_id: string | null
           updated_at: string
@@ -146,6 +147,7 @@ export type Database = {
           team_b_id?: string | null
           team_b_players?: string[]
           toss_decision?: string | null
+          tie_break_toss_winner?: string | null
           toss_winner?: string | null
           tournament_id?: string | null
           updated_at?: string
@@ -173,6 +175,7 @@ export type Database = {
           team_b_id?: string | null
           team_b_players?: string[]
           toss_decision?: string | null
+          tie_break_toss_winner?: string | null
           toss_winner?: string | null
           tournament_id?: string | null
           updated_at?: string
@@ -401,6 +404,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      super_over_supported: { Args: Record<PropertyKey, never>; Returns: boolean }
       platform_other_matches: { Args: { _search?: string; _state?: string; _page?: number }; Returns: Json };
       platform_other_match_details: { Args: { _match: string }; Returns: Json };
       platform_manage_other_match: { Args: { _match: string; _action: string; _reason?: string; _confirmation?: string; _owner?: string }; Returns: undefined };

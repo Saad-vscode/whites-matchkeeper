@@ -174,14 +174,14 @@ function TvScoreDetail({ match, d, tournamentLogo }: { match: MatchRow; d: Deriv
       <div className="tv-arena-metric"><span>Overs</span><strong>{formatOvers(s.legalBalls, d.cfg.ballsPerOver)}</strong><small>of {d.cfg.overs} overs</small></div>
       <div className="tv-arena-total">
         <TvWatermark url={tournamentLogo} />
-        <p>{teamName(match, d.battingSide)} · Innings {d.innings}</p>
+        <p>{teamName(match, d.battingSide)} · {d.innings >= 3 ? `Super Over - Innings ${d.innings - 2}` : `Innings ${d.innings}`}</p>
         <div className="score-num" data-compact={String(s.runs).length + String(s.wickets).length > 3}>{s.runs}<span>/</span>{s.wickets}</div>
       </div>
       <div className="tv-arena-metric"><span>Current run rate</span><strong>{runRate(s.runs, s.legalBalls, d.cfg.ballsPerOver).toFixed(2)}</strong><small>runs per over</small></div>
     </section>
     <div className="tv-arena-result" aria-live="polite">
       {d.target != null && <span>Target <b>{d.target}</b></span>}
-      {match.status === "completed" && d.result ? <strong>{d.result}</strong> : <>
+      {(match.status === "completed" || d.needsSuperOver || d.needsDecidingToss) && d.result ? <strong>{d.result}</strong> : <>
         {d.target != null && !finished && <span>Need <b>{Math.max(0, d.target - s.runs)}</b> from <b>{Math.max(0, d.cfg.overs * d.cfg.ballsPerOver - s.legalBalls)}</b> balls</span>}
         {rrr != null && !finished && <span>RRR <b>{Math.max(0, rrr).toFixed(2)}</b></span>}
       </>}

@@ -22,7 +22,7 @@ export interface Wicket {
 
 export interface Delivery {
   id: string;
-  innings: 1 | 2;
+  innings: 1 | 2 | 3 | 4;
   seq: number;
   striker: string;
   non_striker: string;

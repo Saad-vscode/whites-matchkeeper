@@ -30,7 +30,7 @@ import { groupRoundFinished, playoffNode } from "@/lib/cricket/playoffs";
 import { usePlayoffs } from "@/lib/cricket/use-playoffs";
 import { standings } from "@/lib/cricket/tournament";
 import { battingSide } from "@/lib/cricket/match";
-import { formatOvers, matchResult, maxWickets, normalizeRules } from "@/lib/cricket/engine";
+import { formatOvers, maxWickets, normalizeRules } from "@/lib/cricket/engine";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -319,21 +319,15 @@ function MatchCard({
 }) {
   const { m, derived: d } = row;
   const firstSide = battingSide(m, 1);
-  const result = matchResult(
-    d.first,
-    d.second,
-    d.cfg,
-    firstSide === "A" ? m.team_a : m.team_b,
-    firstSide === "A" ? m.team_b : m.team_a,
-  );
+  const result = d.result;
   const situation =
     m.status === "abandoned"
       ? "No result — match abandoned"
       : m.status === "cancelled"
         ? "Match cancelled"
         : (result ??
-          (d.innings === 2 && d.target
-            ? `${d.target - d.second.runs} needed from ${Math.max(0, m.overs * m.balls_per_over - d.second.legalBalls)} balls`
+          (d.target
+            ? `${d.target - d.current.runs} needed from ${Math.max(0, d.cfg.overs * d.cfg.ballsPerOver - d.current.legalBalls)} balls`
             : m.status === "scheduled"
               ? "Yet to start"
               : "Match in progress"));

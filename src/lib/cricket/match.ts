@@ -1,3 +1,4 @@
+import { requiresDecider } from "./match-stage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -13,7 +14,7 @@ import {
 export type MatchRow = Tables<"matches">;
 
 export interface LiveState {
-  innings?: 1 | 2 | undefined;
+  innings?: 1 | 2 | 3 | 4 | undefined;
   striker?: string | null | undefined;
   nonStriker?: string | null | undefined;
   bowler?: string | null | undefined;
@@ -31,11 +32,11 @@ export function configOf(m: MatchRow): MatchConfig {
 }
 
 /** Which side ("A"|"B") bats in the given innings, based on the toss. */
-export function battingSide(m: MatchRow, innings: 1 | 2): "A" | "B" | null {
+export function battingSide(m: MatchRow, innings: 1 | 2 | 3 | 4): "A" | "B" | null {
   if (!m.toss_winner || !m.toss_decision) return null;
   const other = m.toss_winner === "A" ? "B" : "A";
   const first = m.toss_decision === "bat" ? m.toss_winner : other;
-  return innings === 1 ? (first as "A" | "B") : first === "A" ? "B" : "A";
+  return (innings === 1 || innings === 4) ? (first as "A" | "B") : first === "A" ? "B" : "A";
 }
 
 export const teamName = (m: MatchRow, side: "A" | "B" | null) =>
@@ -47,31 +48,63 @@ export interface Derived {
   cfg: MatchConfig;
   first: InningsState;
   second: InningsState;
-  innings: 1 | 2;
+  innings: 1 | 2 | 3 | 4;
   current: InningsState;
   target: number | null;
   battingSide: "A" | "B" | null;
   bowlingSide: "A" | "B" | null;
   result: string | null;
+  regulationCfg: MatchConfig;
+  superFirst: InningsState;
+  superSecond: InningsState;
+  superDeliveries: Delivery[];
+  needsSuperOver: boolean;
+  needsDecidingToss: boolean;
+  winner: "A" | "B" | "tie" | null;
 }
 
 export function derive(m: MatchRow, deliveries: Delivery[]): Derived {
-  const cfg = configOf(m);
-  const first = computeInnings(deliveries.filter((d) => d.innings === 1), cfg, null);
-  const target = first.complete || getLive(m).innings === 2 ? first.runs + 1 : null;
-  const second = computeInnings(deliveries.filter((d) => d.innings === 2), cfg, target);
-  const innings: 1 | 2 = getLive(m).innings === 2 ? 2 : 1;
+  const regulationCfg = configOf(m);
+  const innings = getLive(m).innings ?? 1;
+  const superCfg: MatchConfig = { ...regulationCfg, overs: 1, ballsPerOver: 6,
+    rules: { ...regulationCfg.rules, lastManBats: false, maxWickets: Math.min(2, Math.max(1, m.players_per_team - 1)), maxOversPerBowler: 1 } };
+  const cfg = innings >= 3 ? superCfg : regulationCfg;
+  const first = computeInnings(deliveries.filter(d => d.innings === 1), regulationCfg, null);
+  const target = first.complete || innings >= 2 ? first.runs + 1 : null;
+  const second = computeInnings(deliveries.filter(d => d.innings === 2), regulationCfg, target);
+  const superDeliveries = deliveries.filter(d => d.innings >= 3);
+  const superFirst = computeInnings(superDeliveries.filter(d => d.innings === 3), superCfg, null);
+  const superSecond = computeInnings(superDeliveries.filter(d => d.innings === 4), superCfg, superFirst.runs + 1);
+  const tied = first.complete && second.complete && first.runs === second.runs;
+  const decider = tied && requiresDecider(m.rules) && !["abandoned", "cancelled"].includes(m.status);
+  const needsSuperOver = decider && innings < 3;
+  const superDone = decider && superFirst.complete && superSecond.complete;
+  const needsDecidingToss = superDone && superFirst.runs === superSecond.runs && !m.tie_break_toss_winner;
+  const s1 = battingSide(m, 1), s2 = battingSide(m, 2);
+  let winner: Derived["winner"] = first.complete && second.complete
+    ? (second.runs > first.runs ? s2 : first.runs > second.runs ? s1 : "tie") : null;
+  let result = innings >= 2 ? matchResult(first, second, regulationCfg, teamName(m, s1), teamName(m, s2)) : null;
+  if (decider) {
+    winner = null;
+    result = "Match tied - Super Over required";
+    if (innings >= 3) result = "Match tied - Super Over in progress";
+    if (superDone) {
+      if (superFirst.runs !== superSecond.runs) {
+        winner = superFirst.runs > superSecond.runs ? s2 : s1;
+        result = teamName(m, winner) + " won the Super Over";
+      } else {
+        winner = m.tie_break_toss_winner === "A" || m.tie_break_toss_winner === "B" ? m.tie_break_toss_winner : null;
+        result = winner ? teamName(m, winner) + " won by deciding toss (Super Over tied)" : "Super Over tied - deciding toss required";
+      }
+    }
+  }
   const bs = battingSide(m, innings);
   return {
-    cfg,
-    first,
-    second,
-    innings,
-    current: innings === 1 ? first : second,
-    target: innings === 2 ? target : null,
-    battingSide: bs,
-    bowlingSide: bs ? (bs === "A" ? "B" : "A") : null,
-    result: (innings === 2 ? matchResult(first, second, cfg, teamName(m, battingSide(m, 1)), teamName(m, battingSide(m, 2))) : null),
+    cfg, regulationCfg, first, second, superFirst, superSecond, superDeliveries,
+    needsSuperOver, needsDecidingToss, winner, innings,
+    current: innings === 1 ? first : innings === 2 ? second : innings === 3 ? superFirst : superSecond,
+    target: innings === 2 ? target : innings === 4 ? superFirst.runs + 1 : null,
+    battingSide: bs, bowlingSide: bs ? (bs === "A" ? "B" : "A") : null, result,
   };
 }
 

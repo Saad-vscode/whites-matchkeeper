@@ -1,5 +1,5 @@
 import { computeInnings, creditsBowler, isLegal, normalizeRules, type Delivery } from "./engine";
-import { battingSide, teamName, type MatchRow } from "./match";
+import { battingSide, derive, teamName, type MatchRow } from "./match";
 
 export const HIGHLIGHTS = {
   four: "Four",
@@ -57,14 +57,15 @@ export function highlightCandidates(
     playersPerTeam: match.players_per_team,
     rules: normalizeRules(match.rules),
   };
+  if (ball.innings >= 3) Object.assign(cfg, derive({ ...match, live: { innings: ball.innings } }, balls).cfg);
   const innings = balls
     .filter((b) => b.innings === ball.innings && b.seq <= ball.seq)
     .sort((a, b) => a.seq - b.seq);
   const previous = innings.filter((b) => b.id !== ball.id);
   const target =
-    ball.innings === 2
+    (ball.innings === 2 || ball.innings === 4)
       ? computeInnings(
-          balls.filter((b) => b.innings === 1),
+          balls.filter((b) => b.innings === ball.innings - 1),
           cfg,
           null,
         ).runs + 1

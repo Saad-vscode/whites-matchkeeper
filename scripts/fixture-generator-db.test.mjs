@@ -51,6 +51,7 @@ test('Independent match administration isolates tournaments and protects public 
   await db.exec("RESET ROLE; SELECT set_config('request.jwt.claim.sub','',false); SET ROLE anon");
   assert.equal((await db.query('SELECT count(*)::int n FROM matches WHERE id=$1',[match])).rows[0].n,0);
   assert.equal((await db.query('SELECT match_read_access($1) ok',[match])).rows[0].ok,false);
+  assert.equal((await db.query('SELECT read_live_match($1) snapshot',[match])).rows[0].snapshot,null);
   assert.equal((await db.query('SELECT count(*)::int n FROM deliveries WHERE match_id=$1',[match])).rows[0].n,0);
   await assert.rejects(db.query('SELECT platform_other_match_details($1)',[match]),/permission denied/);
   await identity(scorer);assert.equal((await db.query('SELECT can_score($1) ok',[match])).rows[0].ok,true);
@@ -805,4 +806,55 @@ test('Phase 5 owner settings, frozen defaults, limits, drain maintenance and ann
  for(const a of all)await db.query("SELECT platform_announcement_save($1,'{}',true)",[a.id]);
  await db.query('SELECT platform_bulk_defaults($1,$2)',['APPLY TO ALL USERS',(await settings()).revision]);
  await identity(newcomer);assert.equal((await db.query('SELECT read_feature_access() AS f')).rows[0].f.sound,true);
+});
+
+test('Super Over RPC validates stages, toss eligibility, revision checks, retries and undo', async () => {
+ await db.exec('RESET ROLE');
+ const m=randomUUID(), group=randomUUID();
+ for (const [id,rules] of [[m,{tournamentStage:{kind:'other',title:'Semi Final'}}],[group,{tournamentStage:{kind:'group',title:'A'}}]]) {
+  await db.query("INSERT INTO matches(id,created_by,name,team_a,team_b,overs,balls_per_over,players_per_team,toss_winner,toss_decision,status,live,rules) VALUES($1,$2,'Decider','A','B',1,1,3,'A','bat','live','{\"innings\":1}',$3)",[id,owner,rules]);
+ }
+ await identity(owner);
+ let revision=0;
+ const apply=async(kind,delivery={},patch={},id=randomUUID(),expected=revision)=>{
+  const r=(await db.query('SELECT apply_score_operation($1,$2,$3,$4,$5,$6,$7) s',[m,id,expected,kind,delivery,patch,'Super Over test'])).rows[0].s;
+  revision=r.match.score_revision;return r;
+ };
+ const ball=(innings,seq,runs=0)=>({id:randomUUID(),innings,seq,striker:'A',non_striker:'B',bowler:'C',runs_bat:runs,extra_type:'none',extras:0,wicket:null});
+ await assert.rejects(apply('state',{}, {tie_break_toss_winner:'A',status:'completed'}),/tied playoff/);
+ await apply('ball',ball(1,1,2),{live:{innings:2}});
+ await apply('ball',ball(2,1,2),{status:'paused'});
+ await assert.rejects(apply('state',{}, {status:'completed'}),/requires a Super Over/);
+ await assert.rejects(apply('state',{}, {tie_break_toss_winner:'A',status:'completed'}),/tied Super Over/);
+ await apply('state',{}, {live:{innings:3},status:'live'});
+ await assert.rejects(apply('state',{}, {live:{innings:4}}),/Finish the first/);
+ for(let i=1;i<=6;i++) await apply('ball',ball(3,i,i===1?2:0),i===6?{live:{innings:4},status:'innings_break'}:{});
+ await apply('state',{}, {status:'live'});
+ let last;
+ for(let i=1;i<=6;i++){last=ball(4,i,i===1?2:0);await apply('ball',last,i===6?{status:'paused'}:{});}
+ const earlier=(await db.query('SELECT to_jsonb(d) d FROM deliveries d WHERE match_id=$1 AND innings=3 ORDER BY seq LIMIT 1',[m])).rows[0].d;
+ await assert.rejects(apply('edit',{...earlier,innings:4},{},randomUUID()),/Undo later/);
+ const id=randomUUID(),expected=revision;
+ const result=await apply('state',{}, {tie_break_toss_winner:'B',status:'completed'},id);
+ assert.equal(result.match.tie_break_toss_winner,'B');assert.equal(result.match.toss_winner,'A');
+ const retry=await apply('state',{}, {tie_break_toss_winner:'B',status:'completed'},id,expected);
+ assert.equal(retry.match.score_revision,revision);
+ await assert.rejects(apply('state',{}, {status:'live'},randomUUID(),expected),/SCORE_CONFLICT/);
+ const undone=await apply('undo',last,{status:'live'});assert.equal(undone.match.tie_break_toss_winner,null);
+ await identity(outsider);await assert.rejects(apply('state'),/Not allowed/);
+ await identity(owner);
+ await assert.rejects(db.query("SELECT apply_score_operation($1,$2,0,'state','{}','{\"live\":{\"innings\":3}}','')",[group,randomUUID()]),/tied playoff/);
+});
+
+test('read_live_match returns an ordered public snapshot through migration 0022', async () => {
+ const s=await seed(), match=await manual(s,s.ids[0],s.ids[1]);
+ await db.exec('RESET ROLE');
+ for (const seq of [2,1]) await db.query("INSERT INTO deliveries(id,match_id,innings,seq,striker,non_striker,bowler,runs_bat,created_by) VALUES($1,$2,1,$3,'A','B','C',$3,$4)",[randomUUID(),match,seq,owner]);
+ await db.exec("SELECT set_config('request.jwt.claim.sub','',false); SET ROLE anon");
+ const snapshot=(await db.query('SELECT read_live_match($1) snapshot',[match])).rows[0].snapshot;
+ assert.equal(snapshot.match.id,match);
+ assert.deepEqual(snapshot.deliveries.map(d=>d.seq),[1,2]);
+ assert.equal((await db.query('SELECT read_live_match($1) snapshot',[randomUUID()])).rows[0].snapshot,null);
+ await identity(owner);
+ assert.equal((await db.query('SELECT read_live_match($1) snapshot',[match])).rows[0].snapshot.match.id,match);
 });

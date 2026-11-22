@@ -19,7 +19,7 @@ export function replay(base: ScoreSnapshot, queue: ScoreOperation[]): ScoreSnaps
     if (ball && op.kind === "ball" && !deliveries.some((d) => d.id === ball.id)) deliveries = [...deliveries, ball];
     if (ball && op.kind === "undo") deliveries = deliveries.filter((d) => d.id !== ball.id);
     if (ball && op.kind === "edit") deliveries = deliveries.map((d) => d.id === ball.id ? ball : d);
-    return { match: { ...state.match, ...op.patch, result: null }, deliveries };
+    return { match: { ...state.match, ...op.patch, ...(op.kind === "undo" || op.kind === "edit" ? { tie_break_toss_winner: null } : {}), result: null }, deliveries };
   }, base);
 }
 

@@ -85,14 +85,14 @@ describe("playoff progression", () => {
       expect(new Set(inserted).size).toBe(n);
     },
   );
-  it("requires a revision-bound organiser decision for a tie", () => {
+  it("requires a Super Over for a playoff tie instead of an organiser override", () => {
     const draw = makeDraw(["a", "b"], "single"),
       m = match("final", "a", "b"),
       balls = winB("final");
     balls[1]!.runs_bat = 1;
-    expect(resolveDraw(draw, [m], balls)[0]?.status).toBe("decision");
+    expect(resolveDraw(draw, [m], balls)[0]?.status).toBe("live");
     draw.decisions["final"] = { team: "b", reason: "Tie-break won", revision: 0 };
-    expect(resolveDraw(draw, [m], balls)[0]?.winner).toBe("b");
+    expect(resolveDraw(draw, [m], balls)[0]?.winner).toBeNull();
     expect(resolveDraw(draw, [{ ...m, score_revision: 1 }], balls)[0]?.winner).toBeNull();
   });
   it("flags stale dependent fixtures after an undo instead of silently advancing", () => {

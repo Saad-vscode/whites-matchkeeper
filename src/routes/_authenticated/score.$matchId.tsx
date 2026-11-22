@@ -37,7 +37,6 @@ import {
   countsAsWicket,
   formatOvers,
   maxWickets,
-  matchResult,
   requiredRunRate,
   runRate,
   type Delivery,
@@ -46,6 +45,7 @@ import {
   type Wicket,
 } from "@/lib/cricket/engine";
 import {
+  derive,
   battingSide,
   getLive,
   teamName,
@@ -475,6 +475,43 @@ function Choice({
 
 type LM = ReturnType<typeof useScoring>;
 
+export function PlayoffDecider({ lm, onUndo }: { lm: LM; onUndo: () => void }) {
+  const [winner, setWinner] = useState<"A" | "B" | "">("");
+  const [saving, setSaving] = useState(false);
+  const m = lm.match!, d = lm.derived!;
+  const blocked = saving || lm.conflict || lm.pending > 0 || lm.syncing || !lm.online;
+  const save = async () => {
+    if (blocked || (d.needsDecidingToss && !winner)) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.rpc("super_over_supported");
+      if (error) throw new Error("Super Over scoring needs the latest database migration. Contact the organizer.");
+      await lm.mutate({ kind: "state", delivery: null,
+        patch: d.needsDecidingToss
+          ? { tie_break_toss_winner: winner, status: "completed" }
+          : { live: { innings: 3 }, status: "innings_break", tie_break_toss_winner: null },
+        reason: d.needsDecidingToss ? "Recorded deciding toss after a tied Super Over" : "Started playoff Super Over" });
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not start the decider"); }
+    finally { setSaving(false); }
+  };
+  return <section className="rounded-2xl border-2 border-primary bg-card p-5 sm:p-8" aria-label="Playoff decider">
+    <p className="text-xs font-semibold uppercase tracking-widest text-primary">Playoff decider</p>
+    <h2 className="mt-2 text-2xl font-bold">{d.needsDecidingToss ? "Deciding toss" : "Match tied — Super Over"}</h2>
+    {d.needsDecidingToss ? <>
+      <p className="mt-3 text-sm text-muted-foreground">The Super Over is tied. Conduct the deciding toss, then select the winning team. The toss winner wins the match and advances.</p>
+      <Label className="mt-5 block" htmlFor="deciding-toss">Toss winner</Label>
+      <select id="deciding-toss" className="mt-2 w-full rounded-xl border border-input bg-background p-3" value={winner} onChange={e => setWinner(e.target.value as typeof winner)}>
+        <option value="">Select the toss winner</option><option value="A">{m.team_a}</option><option value="B">{m.team_b}</option>
+      </select>
+    </> : <p className="mt-3 text-sm text-muted-foreground">{teamName(m, battingSide(m, 2))} bats first, followed by {teamName(m, battingSide(m, 1))}. Each team has six legal balls and up to two wickets. If the Super Over is also tied, a deciding toss determines the winner.</p>}
+    <div className="mt-5 flex flex-wrap gap-3">
+      <Button disabled={blocked || (d.needsDecidingToss && !winner)} onClick={() => void save()}>{d.needsDecidingToss ? "Confirm toss winner and finish match" : "Start Super Over"}</Button>
+      <Button variant="outline" disabled={blocked} onClick={onUndo}>Undo last ball</Button>
+    </div>
+    {!lm.online || lm.pending > 0 ? <p className="mt-3 text-sm text-muted-foreground">Connect and sync all deliveries before confirming the decider.</p> : null}
+  </section>;
+}
+
 export function Scorer({ lm }: { lm: LM }) {
   const match = lm.match;
   const d = lm.derived;
@@ -493,6 +530,7 @@ export function Scorer({ lm }: { lm: LM }) {
   const [abandon, setAbandon] = useState(false);
 
   const finished =
+    d.needsSuperOver || d.needsDecidingToss ||
     lm.conflict ||
     match.status === "completed" ||
     match.status === "abandoned" ||
@@ -540,7 +578,7 @@ export function Scorer({ lm }: { lm: LM }) {
       wicket: p.wicket ?? null,
     };
     const all = [...lm.deliveries, del];
-    const target = innings === 2 ? d.target : null;
+    const target = d.target;
     const ns = computeInnings(
       all.filter((x) => x.innings === innings),
       d.cfg,
@@ -555,23 +593,15 @@ export function Scorer({ lm }: { lm: LM }) {
     if (p.swapAfter) next = { ...next, striker: next.nonStriker, nonStriker: next.striker };
     const patch: Partial<MatchRow> = { live: next as never, status: "live" };
     if (ns.complete) {
-      if (innings === 1) {
-        patch.live = { innings: 2 } as never;
+      if (innings === 1 || innings === 3) {
+        patch.live = { innings: innings === 1 ? 2 : 4 } as never;
         patch.status = "innings_break";
         toast.success(`Innings over: ${ns.runs}/${ns.wickets}. Target ${ns.runs + 1}.`);
       } else {
-        const first = d.first;
-        const res = matchResult(
-          first,
-          ns,
-          d.cfg,
-          teamName(match, battingSide(match, 1)),
-          teamName(match, battingSide(match, 2)),
-        );
-        patch.status = "completed";
-        patch.result = res;
-        patch.live = { innings: 2 } as never;
-        toast.success(res ?? "Match complete");
+        patch.live = { innings } as never;
+        const completed = derive({ ...match, ...patch }, all);
+        patch.status = completed.needsSuperOver || completed.needsDecidingToss ? "paused" : "completed";
+        toast.success(completed.result ?? "Innings complete");
       }
     }
     await lm.mutate({ kind: "ball", delivery: del, patch, reason: "" });
@@ -583,9 +613,9 @@ export function Scorer({ lm }: { lm: LM }) {
     setConfirmUndo(false);
     let inn = innings;
     let mine = lm.deliveries.filter((x) => x.innings === inn);
-    if (mine.length === 0 && inn === 2) {
-      inn = 1;
-      mine = lm.deliveries.filter((x) => x.innings === 1);
+    while (mine.length === 0 && inn > 1) {
+      inn = (inn - 1) as typeof inn;
+      mine = lm.deliveries.filter((x) => x.innings === inn);
     }
     const last = mine.sort((a, b) => b.seq - a.seq)[0];
     if (!last) {
@@ -598,6 +628,7 @@ export function Scorer({ lm }: { lm: LM }) {
       delivery: last,
       reason: "",
       patch: {
+        tie_break_toss_winner: null,
         status: "live",
         live: {
           innings: inn,
@@ -629,7 +660,7 @@ export function Scorer({ lm }: { lm: LM }) {
       <section className="overflow-hidden rounded-xl bg-board text-board-foreground shadow-lg">
         <div className="flex items-center justify-between border-b border-board-line px-4 py-2 text-xs uppercase tracking-widest text-board-muted">
           <span>
-            {<TournamentName id={match.tournament_id} fallback={match.name}/>} · Innings {innings}
+            {<TournamentName id={match.tournament_id} fallback={match.name}/>} · {innings >= 3 ? `Super Over - Innings ${innings - 2}` : `Innings ${innings}`}
           </span>
           <StatusPill status={match.status} />
         </div>
@@ -734,9 +765,11 @@ export function Scorer({ lm }: { lm: LM }) {
           Match abandoned · No result
         </p>
       )}
-      {match.status === "completed" && (
+      {(d.needsSuperOver || d.needsDecidingToss) && <PlayoffDecider lm={lm} onUndo={() => setConfirmUndo(true)} />}
+      {match.status === "completed" && !d.needsSuperOver && !d.needsDecidingToss && (
         <div className="rounded-lg border-2 border-primary bg-card p-4 text-center">
           <div className="font-display text-2xl font-bold text-primary">{d.result}</div>
+          {match.tie_break_toss_winner && <Button variant="outline" size="sm" className="mt-2 mr-2" disabled={busy || lm.conflict || lm.pending > 0 || !lm.online} onClick={() => lm.mutate({ kind: "state", delivery: null, patch: { tie_break_toss_winner: null, status: "paused" }, reason: "Reopened deciding toss for correction" })}>Correct deciding toss</Button>}
           <Button variant="ghost" size="sm" className="mt-2" onClick={() => setConfirmUndo(true)}>
             Undo last ball
           </Button>
@@ -745,15 +778,15 @@ export function Scorer({ lm }: { lm: LM }) {
 
       {match.status === "innings_break" && (
         <SelectPlayers
-          title={`Second innings — ${teamName(match, battingSide(match, 2))} need ${d.first.runs + 1}`}
-          batting={teamPlayers(match, battingSide(match, 2))}
-          bowling={teamPlayers(match, battingSide(match, 1))}
+          title={`${innings === 3 ? "Super Over — first innings" : innings === 4 ? "Super Over chase" : "Second innings"} — ${teamName(match, d.battingSide)}${d.target ? ` need ${d.target}` : ""}`}
+          batting={batting}
+          bowling={bowling}
           need={{ striker: true, non: true, bowler: true }}
           out={new Set()}
           live={{}}
           eligibility={() => null}
-          onSave={(v) => updateLive({ status: "live", live: { innings: 2, ...v } as never })}
-          onSelection={(v) => updateLive({ status: "live", live: { innings: 2, ...v } as never })}
+          onSave={(v) => updateLive({ status: "live", live: { innings, ...v } as never })}
+          onSelection={(v) => updateLive({ status: "live", live: { innings, ...v } as never })}
           onUndo={() => setConfirmUndo(true)}
         />
       )}
