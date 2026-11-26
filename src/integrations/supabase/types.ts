@@ -70,6 +70,70 @@ export type Database = {
           },
         ]
       }
+      fixture_generation_requests: {
+        Row: {
+          created_at: string
+          created_by: string
+          match_ids: string[]
+          payload_hash: string
+          request_id: string
+          tournament_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          match_ids: string[]
+          payload_hash: string
+          request_id: string
+          tournament_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          match_ids?: string[]
+          payload_hash?: string
+          request_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixture_generation_requests_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_award_publications: {
+        Row: {
+          match_id: string
+          published_at: string
+          published_by: string | null
+          score_revision: number
+        }
+        Insert: {
+          match_id: string
+          published_at?: string
+          published_by?: string | null
+          score_revision: number
+        }
+        Update: {
+          match_id?: string
+          published_at?: string
+          published_by?: string | null
+          score_revision?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_award_publications_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_scorers: {
         Row: {
           email: string | null
@@ -98,7 +162,6 @@ export type Database = {
       }
       matches: {
         Row: {
-          scheduled_time: string | null
           balls_per_over: number
           created_at: string
           created_by: string
@@ -107,9 +170,14 @@ export type Database = {
           match_date: string | null
           name: string
           overs: number
+          platform_archived: boolean
+          platform_deleted_at: string | null
+          platform_disabled: boolean
+          platform_hidden: boolean
           players_per_team: number
           result: string | null
           rules: Json
+          scheduled_time: string | null
           score_revision: number
           status: string
           team_a: string
@@ -118,15 +186,14 @@ export type Database = {
           team_b: string
           team_b_id: string | null
           team_b_players: string[]
-          toss_decision: string | null
           tie_break_toss_winner: string | null
+          toss_decision: string | null
           toss_winner: string | null
           tournament_id: string | null
           updated_at: string
           venue: string | null
         }
         Insert: {
-          scheduled_time?: string | null
           balls_per_over?: number
           created_at?: string
           created_by?: string
@@ -135,9 +202,14 @@ export type Database = {
           match_date?: string | null
           name: string
           overs?: number
+          platform_archived?: boolean
+          platform_deleted_at?: string | null
+          platform_disabled?: boolean
+          platform_hidden?: boolean
           players_per_team?: number
           result?: string | null
           rules?: Json
+          scheduled_time?: string | null
           score_revision?: number
           status?: string
           team_a: string
@@ -146,15 +218,14 @@ export type Database = {
           team_b: string
           team_b_id?: string | null
           team_b_players?: string[]
-          toss_decision?: string | null
           tie_break_toss_winner?: string | null
+          toss_decision?: string | null
           toss_winner?: string | null
           tournament_id?: string | null
           updated_at?: string
           venue?: string | null
         }
         Update: {
-          scheduled_time?: string | null
           balls_per_over?: number
           created_at?: string
           created_by?: string
@@ -163,9 +234,14 @@ export type Database = {
           match_date?: string | null
           name?: string
           overs?: number
+          platform_archived?: boolean
+          platform_deleted_at?: string | null
+          platform_disabled?: boolean
+          platform_hidden?: boolean
           players_per_team?: number
           result?: string | null
           rules?: Json
+          scheduled_time?: string | null
           score_revision?: number
           status?: string
           team_a?: string
@@ -174,8 +250,8 @@ export type Database = {
           team_b?: string
           team_b_id?: string | null
           team_b_players?: string[]
-          toss_decision?: string | null
           tie_break_toss_winner?: string | null
+          toss_decision?: string | null
           toss_winner?: string | null
           tournament_id?: string | null
           updated_at?: string
@@ -204,6 +280,315 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_accounts: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          deactivated_at: string | null
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          deactivated_at?: string | null
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          deactivated_at?: string | null
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_activity: {
+        Row: {
+          action: string
+          actor_id: string | null
+          changes: Json
+          created_at: string
+          id: number
+          match_id: string | null
+          reason: string | null
+          subject_id: string | null
+          tournament_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          changes?: Json
+          created_at?: string
+          id?: never
+          match_id?: string | null
+          reason?: string | null
+          subject_id?: string | null
+          tournament_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          changes?: Json
+          created_at?: string
+          id?: never
+          match_id?: string | null
+          reason?: string | null
+          subject_id?: string | null
+          tournament_id?: string | null
+        }
+        Relationships: []
+      }
+      platform_announcements: {
+        Row: {
+          body: string
+          category: string
+          changed_at: string
+          dismissible: boolean
+          ends_at: string | null
+          id: string
+          published: boolean
+          starts_at: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          category: string
+          changed_at?: string
+          dismissible?: boolean
+          ends_at?: string | null
+          id?: string
+          published?: boolean
+          starts_at?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          changed_at?: string
+          dismissible?: boolean
+          ends_at?: string | null
+          id?: string
+          published?: boolean
+          starts_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      platform_drain_transactions: {
+        Row: {
+          match_id: string
+          transaction_id: number
+        }
+        Insert: {
+          match_id: string
+          transaction_id: number
+        }
+        Update: {
+          match_id?: string
+          transaction_id?: number
+        }
+        Relationships: []
+      }
+      platform_feature_baselines: {
+        Row: {
+          enabled: boolean
+          feature_id: string
+          user_id: string
+        }
+        Insert: {
+          enabled: boolean
+          feature_id: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          feature_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_feature_baselines_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "platform_features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_feature_overrides: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          enabled: boolean
+          feature_id: string
+          user_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          enabled: boolean
+          feature_id: string
+          user_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          enabled?: boolean
+          feature_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_feature_overrides_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "platform_features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_features: {
+        Row: {
+          category: string
+          default_enabled: boolean
+          globally_enabled: boolean
+          id: string
+          label: string
+        }
+        Insert: {
+          category: string
+          default_enabled?: boolean
+          globally_enabled?: boolean
+          id: string
+          label: string
+        }
+        Update: {
+          category?: string
+          default_enabled?: boolean
+          globally_enabled?: boolean
+          id?: string
+          label?: string
+        }
+        Relationships: []
+      }
+      platform_invitations: {
+        Row: {
+          actor_id: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          requested_role: string
+          state: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          email: string
+          full_name: string
+          id: string
+          requested_role: string
+          state?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          requested_role?: string
+          state?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      platform_maintenance_matches: {
+        Row: {
+          match_id: string
+        }
+        Insert: {
+          match_id: string
+        }
+        Update: {
+          match_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_maintenance_matches_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_roles: {
+        Row: {
+          created_at: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_settings: {
+        Row: {
+          category: string
+          changed_at: string
+          changed_by: string | null
+          default_value: Json
+          id: string
+          value: Json
+        }
+        Insert: {
+          category: string
+          changed_at?: string
+          changed_by?: string | null
+          default_value: Json
+          id: string
+          value: Json
+        }
+        Update: {
+          category?: string
+          changed_at?: string
+          changed_by?: string | null
+          default_value?: Json
+          id?: string
+          value?: Json
+        }
+        Relationships: []
+      }
+      platform_tournament_context: {
+        Row: {
+          actor_id: string
+          transaction_id: number
+        }
+        Insert: {
+          actor_id: string
+          transaction_id: number
+        }
+        Update: {
+          actor_id?: string
+          transaction_id?: number
+        }
+        Relationships: []
       }
       score_operations: {
         Row: {
@@ -250,47 +635,134 @@ export type Database = {
         ]
       }
       tournament_groups: {
-        Row: { id: string; tournament_id: string; name: string; team_ids: string[]; created_at: string }
-        Insert: { id?: string; tournament_id: string; name: string; team_ids?: string[]; created_at?: string }
-        Update: { id?: string; tournament_id?: string; name?: string; team_ids?: string[]; created_at?: string }
-        Relationships: []
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          team_ids: string[]
+          tournament_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          team_ids?: string[]
+          tournament_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          team_ids?: string[]
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_groups_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_playoffs: {
+        Row: {
+          approved: boolean
+          draw: Json
+          revision: number
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved?: boolean
+          draw: Json
+          revision?: number
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved?: boolean
+          draw?: Json
+          revision?: number
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_playoffs_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tournament_presentation: {
+        Row: {
+          playing: boolean
+          seconds: number
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          playing?: boolean
+          seconds?: number
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          playing?: boolean
+          seconds?: number
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tournament_presentation_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tournament_teams: {
         Row: {
-          logo_url: string | null
           captain: string | null
-          vice_captain?: string | null
           color: string
           created_at: string
           id: string
+          logo_url: string | null
           name: string
           players: string[]
           short_name: string | null
           tournament_id: string
+          vice_captain: string | null
         }
         Insert: {
-          logo_url?: string | null
           captain?: string | null
-          vice_captain?: string | null
           color?: string
           created_at?: string
           id?: string
+          logo_url?: string | null
           name: string
           players?: string[]
           short_name?: string | null
           tournament_id: string
+          vice_captain?: string | null
         }
         Update: {
-          logo_url?: string | null
           captain?: string | null
-          vice_captain?: string | null
           color?: string
           created_at?: string
           id?: string
+          logo_url?: string | null
           name?: string
           players?: string[]
           short_name?: string | null
           tournament_id?: string
+          vice_captain?: string | null
         }
         Relationships: [
           {
@@ -304,80 +776,88 @@ export type Database = {
       }
       tournaments: {
         Row: {
-          platform_hidden?: boolean
-          platform_disabled?: boolean
-          platform_archived?: boolean
-          platform_deleted_at?: string | null
-          location: string | null
-          description: string | null
-          start_date: string | null
-          end_date: string | null
-          competition_format: string
-          ranking_rule: string
-          points_no_result: number
           accent_color: string
           balls_per_over: number
+          competition_format: string
           created_at: string
           created_by: string
+          description: string | null
+          end_date: string | null
           id: string
+          location: string | null
           logo_url: string | null
           name: string
           overs: number
+          platform_archived: boolean
+          platform_deleted_at: string | null
+          platform_disabled: boolean
+          platform_hidden: boolean
           players_per_team: number
           points_loss: number
+          points_no_result: number
           points_tie: number
           points_win: number
           primary_color: string
+          ranking_rule: string
           rules: Json
           short_name: string | null
+          start_date: string | null
         }
         Insert: {
-          location?: string | null
-          description?: string | null
-          start_date?: string | null
-          end_date?: string | null
-          competition_format?: string
-          ranking_rule?: string
-          points_no_result?: number
           accent_color?: string
           balls_per_over?: number
+          competition_format?: string
           created_at?: string
           created_by?: string
+          description?: string | null
+          end_date?: string | null
           id?: string
+          location?: string | null
           logo_url?: string | null
           name: string
           overs?: number
+          platform_archived?: boolean
+          platform_deleted_at?: string | null
+          platform_disabled?: boolean
+          platform_hidden?: boolean
           players_per_team?: number
           points_loss?: number
+          points_no_result?: number
           points_tie?: number
           points_win?: number
           primary_color?: string
+          ranking_rule?: string
           rules?: Json
           short_name?: string | null
+          start_date?: string | null
         }
         Update: {
-          location?: string | null
-          description?: string | null
-          start_date?: string | null
-          end_date?: string | null
-          competition_format?: string
-          ranking_rule?: string
-          points_no_result?: number
           accent_color?: string
           balls_per_over?: number
+          competition_format?: string
           created_at?: string
           created_by?: string
+          description?: string | null
+          end_date?: string | null
           id?: string
+          location?: string | null
           logo_url?: string | null
           name?: string
           overs?: number
+          platform_archived?: boolean
+          platform_deleted_at?: string | null
+          platform_disabled?: boolean
+          platform_hidden?: boolean
           players_per_team?: number
           points_loss?: number
+          points_no_result?: number
           points_tie?: number
           points_win?: number
           primary_color?: string
+          ranking_rule?: string
           rules?: Json
           short_name?: string | null
+          start_date?: string | null
         }
         Relationships: []
       }
@@ -404,58 +884,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      super_over_supported: { Args: Record<PropertyKey, never>; Returns: boolean }
-      platform_other_matches: { Args: { _search?: string; _state?: string; _page?: number }; Returns: Json };
-      platform_other_match_details: { Args: { _match: string }; Returns: Json };
-      platform_manage_other_match: { Args: { _match: string; _action: string; _reason?: string; _confirmation?: string; _owner?: string }; Returns: undefined };
-      platform_settings_read: { Args: Record<string, never>; Returns: Json };
-      public_platform_configuration: { Args: Record<string, never>; Returns: Json };
-      platform_settings_save: { Args: { _values: Json; _features: Json; _revision: string; _reason?: string }; Returns: undefined };
-      platform_bulk_defaults: { Args: { _confirm: string; _revision: string }; Returns: undefined };
-      platform_announcements_read: { Args: { _public?: boolean }; Returns: Json };
-      platform_announcement_save: { Args: { _id: string | null; _value: Json; _delete?: boolean }; Returns: undefined };
-      read_feature_access: { Args: { _match?: string; _t?: string }; Returns: Json }
-      platform_feature_details: { Args: { _target: string }; Returns: Json }
-      platform_save_features: { Args: { _target: string; _values: Json; _reset?: boolean }; Returns: undefined }
-      platform_tournament_directory: { Args: { _search?: string; _status?: string; _visibility?: string; _organizer?: string; _sort?: string; _page?: number }; Returns: Json };
-      platform_tournament_details: { Args: { _t: string }; Returns: Json };
-      platform_transfer_candidates: { Args: { _search?: string }; Returns: Json };
-      platform_manage_tournament: { Args: { _t: string; _action: string; _values?: Json; _reason?: string; _confirmation?: string }; Returns: undefined };
-      account_access: { Args: Record<string, never>; Returns: boolean };
-      platform_user_directory: { Args: { _search: string; _role: string; _status: string; _sort: string; _page: number }; Returns: Json };
-      platform_user_details: { Args: { _target: string }; Returns: Json };
-      platform_manage_user: { Args: { _target: string; _action: string; _name?: string; _avatar?: string; _reason?: string }; Returns: undefined };
-
-      platform_role: { Args: Record<string, never>; Returns: string };
-      platform_overview: { Args: Record<string, never>; Returns: Json };
-      read_tournament_presentation: { Args: { _t: string }; Returns: Json };
-      set_tournament_presentation: { Args: { _t: string; _playing: boolean; _seconds: number }; Returns: undefined };
-      playoff_context: { Args: { _t: string }; Returns: Json }
-      save_playoff_draw: { Args: { _t: string; _draw: Json; _approve: boolean; _token: string }; Returns: undefined }
-      sync_playoff_fixtures: { Args: { _t: string; _token: string; _winners: Json }; Returns: number }
-      decide_playoff_tie: { Args: { _t: string; _node: string; _team: string; _reason: string; _token: string }; Returns: undefined }
-      read_match_award: {
-        Args: { _match: string }
-        Returns: Json
-      }
-      read_live_match: { Args: { _match: string }; Returns: Json }
-      read_live_tournament_matches: { Args: { _tournament: string }; Returns: Json }
-      publish_match_award: {
-        Args: { _match: string; _expected: number }
-        Returns: Json
-      }
-      fixture_generator_context: { Args: { _t: string; _group: string }; Returns: Json }
-      create_generated_fixtures: { Args: { _t: string; _group: string; _mode: string; _target: number; _token: string; _pairs: Json; _request: string }; Returns: string[] }
-      match_format_supported: { Args: Record<PropertyKey, never>; Returns: boolean }
-      edit_scheduled_match: {
-        Args: { _match: string; _expected: number; _date: string | null; _time: string | null; _venue: string | null }
-        Returns: undefined
-      }
-      delete_scheduled_match: {
-        Args: { _match: string }
-        Returns: undefined
-      }
-      save_tournament_group: { Args: { _t: string; _id: string | null; _name: string; _teams: string[] }; Returns: string }
+      account_access: { Args: never; Returns: boolean }
       apply_score_operation: {
         Args: {
           _delivery: Json
@@ -473,6 +902,47 @@ export type Database = {
         Returns: undefined
       }
       can_score: { Args: { _match: string }; Returns: boolean }
+      create_generated_fixtures: {
+        Args: {
+          _group: string
+          _mode: string
+          _pairs: Json
+          _request: string
+          _t: string
+          _target: number
+          _token: string
+        }
+        Returns: string[]
+      }
+      decide_playoff_tie: {
+        Args: {
+          _node: string
+          _reason: string
+          _t: string
+          _team: string
+          _token: string
+        }
+        Returns: undefined
+      }
+      decider_innings_tied: {
+        Args: { _first: number; _match: string }
+        Returns: boolean
+      }
+      delete_scheduled_match: { Args: { _match: string }; Returns: undefined }
+      feature_enabled: {
+        Args: { _feature: string; _user: string }
+        Returns: boolean
+      }
+      feature_owner: { Args: { _match?: string; _t?: string }; Returns: string }
+      fixture_generator_context: {
+        Args: { _group: string; _t: string }
+        Returns: Json
+      }
+      fixture_generator_context_unrestricted: {
+        Args: { _group: string; _t: string }
+        Returns: Json
+      }
+      global_value: { Args: { _id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -480,9 +950,180 @@ export type Database = {
         }
         Returns: boolean
       }
+      independent_match_writable: { Args: { _m: string }; Returns: boolean }
       is_match_owner: { Args: { _match: string }; Returns: boolean }
+      is_playoff_decider: { Args: { _rules: Json }; Returns: boolean }
       is_tournament_owner: { Args: { _t: string }; Returns: boolean }
+      match_award_access: { Args: { _match: string }; Returns: boolean }
+      match_format_supported: { Args: never; Returns: boolean }
+      match_read_access: { Args: { _m: string }; Returns: boolean }
+      match_row_read_access: {
+        Args: {
+          _created_by: string
+          _deleted_at: string
+          _hidden: boolean
+          _match_id: string
+          _tournament_id: string
+        }
+        Returns: boolean
+      }
+      platform_account_active: { Args: { _id: string }; Returns: boolean }
+      platform_announcement_save: {
+        Args: { _delete?: boolean; _id: string; _value: Json }
+        Returns: undefined
+      }
+      platform_announcements_read: {
+        Args: { _public?: boolean }
+        Returns: Json
+      }
+      platform_bulk_defaults: {
+        Args: { _confirm: string; _revision: string }
+        Returns: undefined
+      }
+      platform_feature_details: { Args: { _target: string }; Returns: Json }
+      platform_finish_invitation: {
+        Args: { _id: string; _sent: boolean }
+        Returns: undefined
+      }
+      platform_manage_other_match: {
+        Args: {
+          _action: string
+          _confirmation?: string
+          _match: string
+          _owner?: string
+          _reason?: string
+        }
+        Returns: undefined
+      }
+      platform_manage_tournament: {
+        Args: {
+          _action: string
+          _confirmation?: string
+          _reason?: string
+          _t: string
+          _values?: Json
+        }
+        Returns: undefined
+      }
+      platform_manage_user: {
+        Args: {
+          _action: string
+          _avatar?: string
+          _name?: string
+          _reason?: string
+          _target: string
+        }
+        Returns: undefined
+      }
+      platform_other_match_details: { Args: { _match: string }; Returns: Json }
+      platform_other_matches: {
+        Args: { _page?: number; _search?: string; _state?: string }
+        Returns: Json
+      }
+      platform_overview: { Args: never; Returns: Json }
+      platform_overview_before_tournament_controls: {
+        Args: never
+        Returns: Json
+      }
+      platform_reserve_invitation: {
+        Args: { _email: string; _id: string; _name: string; _role: string }
+        Returns: Json
+      }
+      platform_role: { Args: never; Returns: string }
+      platform_save_features: {
+        Args: { _reset?: boolean; _target: string; _values: Json }
+        Returns: undefined
+      }
+      platform_settings_read: { Args: never; Returns: Json }
+      platform_settings_save: {
+        Args: {
+          _features: Json
+          _reason?: string
+          _revision: string
+          _values: Json
+        }
+        Returns: undefined
+      }
+      platform_tournament_details: { Args: { _t: string }; Returns: Json }
+      platform_tournament_directory: {
+        Args: {
+          _organizer?: string
+          _page?: number
+          _search?: string
+          _sort?: string
+          _status?: string
+          _visibility?: string
+        }
+        Returns: Json
+      }
+      platform_tournament_rows: { Args: never; Returns: Json[] }
+      platform_transfer_candidates: {
+        Args: { _search?: string }
+        Returns: Json
+      }
+      platform_user_details: { Args: { _target: string }; Returns: Json }
+      platform_user_directory: {
+        Args: {
+          _page?: number
+          _role?: string
+          _search?: string
+          _sort?: string
+          _status?: string
+        }
+        Returns: Json
+      }
+      playoff_context: { Args: { _t: string }; Returns: Json }
+      playoff_context_internal: { Args: { _t: string }; Returns: Json }
+      public_platform_configuration: { Args: never; Returns: Json }
+      publish_match_award: {
+        Args: { _expected: number; _match: string }
+        Returns: Json
+      }
+      read_feature_access: {
+        Args: { _match?: string; _t?: string }
+        Returns: Json
+      }
+      read_live_match: { Args: { _match: string }; Returns: Json }
+      read_live_tournament_matches: {
+        Args: { _tournament: string }
+        Returns: Json
+      }
+      read_match_award: { Args: { _match: string }; Returns: Json }
+      read_tournament_presentation: { Args: { _t: string }; Returns: Json }
+      save_playoff_draw: {
+        Args: { _approve: boolean; _draw: Json; _t: string; _token: string }
+        Returns: undefined
+      }
+      save_tournament_group: {
+        Args: { _id: string; _name: string; _t: string; _teams: string[] }
+        Returns: string
+      }
       scoring_snapshot: { Args: { _match: string }; Returns: Json }
+      set_tournament_presentation: {
+        Args: { _playing: boolean; _seconds: number; _t: string }
+        Returns: undefined
+      }
+      super_innings_complete: {
+        Args: { _innings: number; _match: string }
+        Returns: boolean
+      }
+      super_over_supported: { Args: never; Returns: boolean }
+      sync_playoff_fixtures: {
+        Args: { _t: string; _token: string; _winners: Json }
+        Returns: number
+      }
+      tournament_admin_mutation: { Args: never; Returns: boolean }
+      tournament_read_access: { Args: { _t: string }; Returns: boolean }
+      tournament_row_read_access: {
+        Args: {
+          _created_by: string
+          _deleted_at: string
+          _hidden: boolean
+          _id: string
+        }
+        Returns: boolean
+      }
+      tournament_write_access: { Args: { _t: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
