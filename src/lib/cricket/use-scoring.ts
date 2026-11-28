@@ -1,12 +1,13 @@
 import { useFeatureAccess, readFeatureAccess } from "@/lib/feature-access";
 import { maintenanceAllowsScoring } from '@/lib/global-settings';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
+import type { ScoringTransport } from "./scoring-transport";
+import { supabaseScoringTransport } from "./supabase-scoring-transport";
 import { derive } from "./match";
 import { draftKey, loadDraft, replay, saveDraft, type ScoreDraft, type ScoreOperation, type ScoreSnapshot } from "./offline";
 
-export function useScoring(matchId: string, userId: string) {
+// Inject a stable transport instance; existing callers use the singleton Supabase adapter.
+export function useScoring(matchId: string, userId: string, transport: ScoringTransport = supabaseScoringTransport) {
   const { allows } = useFeatureAccess();
   const offlineAllowed = allows("offline");
   const key = draftKey(userId, matchId);
@@ -39,21 +40,17 @@ export function useScoring(matchId: string, userId: string) {
     setSyncing(true);
     try {
       if (!draft.current?.queue.length) {
-        const { data, error: e } = await supabase.rpc("scoring_snapshot", { _match: matchId });
+        const { data, error: e } = await transport.readSnapshot(matchId);
         if (e) throw e;
         if (!mounted.current) return;
         // A tap may have arrived while the fresh snapshot was being fetched.
-        if (!draft.current?.queue.length) publish({ base: data as unknown as ScoreSnapshot, queue: [] });
+        if (!draft.current?.queue.length) publish({ base: data, queue: [] });
       }
       while (mounted.current && navigator.onLine && draft.current?.queue.length) {
         const current = draft.current;
         const op = current.queue[0];
         if (!op) break;
-        const { data, error: e } = await supabase.rpc("apply_score_operation", {
-          _match: matchId, _id: op.id, _expected: current.base.match.score_revision,
-          _kind: op.kind, _delivery: (op.delivery ?? {}) as unknown as Json,
-          _patch: op.patch as Json, _reason: op.reason,
-        });
+        const { data, error: e } = await transport.applyOperation(matchId, current.base.match.score_revision, op);
         if (e) {
           if (e.message.includes("SCORE_CONFLICT") || e.code === "23505") {
             blocked.current = true;
@@ -65,7 +62,7 @@ export function useScoring(matchId: string, userId: string) {
         }
         if (!mounted.current) return;
         const remaining = draft.current?.queue.filter((x) => x.id !== op.id) ?? [];
-        publish({ base: data as unknown as ScoreSnapshot, queue: remaining });
+        publish({ base: data, queue: remaining });
       }
       if (!blocked.current) setError(null);
     } catch (e) {
@@ -74,7 +71,7 @@ export function useScoring(matchId: string, userId: string) {
       locked.current = false;
       if (mounted.current) setSyncing(false);
     }
-  }, [matchId, publish]);
+  }, [matchId, publish, transport]);
 
   useEffect(() => {
     mounted.current = true;
@@ -117,9 +114,9 @@ export function useScoring(matchId: string, userId: string) {
       const a = document.createElement("a"); a.href = url; a.download = `crease-unsynced-${matchId}.json`; a.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
-    const { data, error: e } = await supabase.rpc("scoring_snapshot", { _match: matchId });
+    const { data, error: e } = await transport.readSnapshot(matchId);
     if (e) { setError(e.message); return; }
-    publish({ base: data as unknown as ScoreSnapshot, queue: [] });
+    publish({ base: data, queue: [] });
     blocked.current = false; setConflict(false); setError(null);
   };
   const derived = useMemo(() => state ? derive(state.match, state.deliveries) : null, [state]);
